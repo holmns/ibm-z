@@ -1,30 +1,131 @@
 # HazeWise
 
-HazeWise is an exposure-aware activity planner. The user describes a plan in plain language (“10 km run at East Coast Park tonight at 8pm at 7 min/km”). The system works out how much polluted air that session will make them breathe in, combines it with forecast PM2.5 and heat, and returns a risk level with reasons and safer alternatives. The same engine gives organisers (like an ageing centre deciding on a 9am Friday exercise session) an earlier go/no-go than the usual last-minute 7am check.
-One honesty point before you submit: you mentioned regression from a baseline in a database, and I don’t think you have that data yet. For version 1, estimate breathing volume from published exercise-physiology relationships (pace → energy cost → ventilation, e.g. ACSM running equations; check the exact formulas). Treat heart rate and personal profile as optional personalisation if time permits. That way the abstract doesn’t promise a model you can’t train in 24 hours.
-Abstract answers
+HazeWise tells someone in Singapore how much PM2.5 a planned outdoor session will put in their lungs, and whether to
+go. You type a plan ("10 km run at East Coast Park tonight at 8pm at 7:00/km", "badminton doubles for 90 min"). It
+estimates how hard you'll breathe, multiplies that by the hourly PM2.5 forecast, and returns Low, Medium or High with
+the reasons, safer start times and nearby venues.
 
-## Problem statement
+PM2.5 forecasts alone miss the body's side of the dose. A runner moves five to six times the air of someone sitting, so
+the same 55 µg/m³ is a very different exposure.
 
-Singapore residents who exercise outdoors, and the organisers who plan group sessions, must decide every day whether it is safe to be outside and when, because heat, humidity and sudden thunderstorms change what is safe, and haze makes that decision more important. Existing tools only report or forecast PM2.5, temperature, humidity and rainfall. They don’t account for what the activity does to the body. A person running breathes in several times more air per minute than a person walking, so the same PM2.5 level means a very different exposure. Heat strain and duration also change with intensity. Turning these raw environmental readings into a risk judgement and planning ahead is hard for most people and small organisers. Community ageing centres, for example, must decide early whether a session will go ahead, which leaves little time to adjust. This project uses AI and open environmental data to monitor conditions and support earlier, safer decisions about outdoor activity.
+Everything runs on one IBM LinuxONE VM (s390x). The data exploration and model training in the notebooks ran there in
+JupyterLab, and the same VM serves the web app.
 
-## Proposed solution (under 200 words)
+## How a plan becomes a risk level
 
-HazeWise uses AI and open environmental data to help people make safer outdoor activity decisions in Singapore, running on IBM LinuxONE. It continuously monitors NEA PM2.5, temperature, humidity, wind and rainfall data, and a forecasting model predicts conditions for a planned time and place with uncertainty. Users describe a plan in plain language, such as “10 km run at East Coast Park tonight at 8pm at 7 min/km”, and a locally hosted open-source language model extracts the location, time, duration and intensity. An exposure model converts pace and duration into estimated breathing volume using published exercise-physiology relationships, then combines it with forecast PM2.5 and heat stress to give a Low, Medium or High risk level. Instead of simply cancelling, the system recommends adjustments (shorter, slower, later or indoors) so people can stay active safely. It also alerts organisers such as ageing centres early enough to change a session. We benchmark against public forecasts on past haze episodes and report results honestly.
+1. **Activity.** The text is embedded (`text-embedding-3-large`) and matched to the closest of 1,111 activities in
+   the 2024 Compendium of Physical Activities. Keyword rules read distance, pace, minutes and start time.
+2. **Breathing (VE, L/min).** Runs go through a pace model. Everything else goes MET → VO2 = MET × 3.5 × kg → VE.
+3. **Dose.** Hourly PM2.5 × VE × minutes gives micrograms inhaled. The rest of the day is added at the EPA's
+   daily air volume for the person's age, with time indoors counted as clean air.
+4. **Level.** Day dose ÷ daily air volume gives a day-equivalent PM2.5, scored against the WHO 2021 24-hour tiers.
+   Heat, UV and rain are scored separately, and the worse of the two levels wins.
+5. **Options.** The same session at every start from 05:00 to 21:00, a shorter and an easier version, and up to six
+   nearby ActiveSG and NParks venues. A Google Map shows them over the current PM2.5 heat map.
 
-## Target audience
+## Data
 
-Recreational outdoor exercisers (runners, cyclists, footballers): they plan a session and need to know how risky it is, and what to change, given the conditions.
-Event organisers and community centres (e.g. ageing centres, schools, running clubs): they decide whether a group session goes ahead and need an earlier, probability-based go/no-go instead of a morning-of check.
-Student athletes and CCA coaches: they train on fixed schedules and need to know when to move or shorten sessions.
-Vulnerable groups, via their organisers or caregivers (secondary): risk thresholds can be tightened for groups more sensitive to haze, such as the elderly.
+| Source                                                                                                                                        | Used for                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [Málaga treadmill tests](https://physionet.org/content/treadmill-exercise-cardioresp/1.0.1/) (PhysioNet), 992 tests, 857 people, 575k breaths | fitting every VE model                                                        |
+| 2024 Compendium of Physical Activities, in `hazewise.db`                                                                                      | MET per activity, 18 families with light/moderate/vigorous codes, 118 aliases |
+| Google Air Quality API                                                                                                                        | hourly PM2.5 (history, now, 96 h ahead) and the heat map tiles                |
+| Open-Meteo                                                                                                                                    | weather, UV, rain; CAMS PM2.5 as the fallback                                 |
+| data.gov.sg                                                                                                                                   | NEA's PSI, SportSG and NParks venues                                          |
+| OneMap                                                                                                                                        | place search                                                                  |
+| US EPA Exposure Factors Handbook 2011, WHO 2021, NEA                                                                                          | daily air volume by age, 24-hour PM2.5 tiers, 1-hour bands                    |
 
-## Datasets
+The treadmill data's license doesn't allow redistribution, so `data/**/*.csv` is git-ignored. Download it into
+`data/` to rerun the notebooks.
 
-NEA real-time APIs (data.gov.sg): PM2.5/PSI, air temperature, humidity, rainfall, wind speed and direction, and heat stress (WBGT) if available.
-NEA historical air quality and weather data for training and backtesting on past haze episodes.
-Published exercise-physiology references for pace/intensity-to-breathing-rate relationships (e.g. US EPA Exposure Factors Handbook, ACSM metabolic equations).
-ActiveSG, NParks and OneMap location data to map venues (e.g. East Coast Park) to NEA regions and find indoor or sheltered alternatives.
-Optional: ASMC/NASA FIRMS fire hotspot data as an early-warning feature.
-Benchmark: public air quality forecasts (e.g. IQAir) for comparison, if API access allows.
-https://open-meteo.com/en/docs
+## Findings
+
+From `explore.ipynb`
+
+- **Speed drives breathing** (Spearman ρ 0.92). The median person breathes 26 L/min walking at 5 km/h, 60 at 10 km/h,
+  73 at 12 and 108 at 16.
+- **People differ by about ±12% at the same speed**, and fitness is most of it. At 12 km/h the least fit third breathes
+  18% more than the fittest third.
+- **Heart rate helps less than expected.** VE spreads wider at a fixed HR than at a fixed speed, because fitter people
+  move more air per beat. Adding HR to speed and profile only cuts median error from 11.9% to 11.0%.
+- **The ACSM pace equations overshoot** VE by 12 to 25% on this data, so the app uses a fitted formula instead.
+- **Pace barely matters for a fixed distance.** Air per km is about 360 L at 9 to 12 km/h, since faster running
+  shortens the session about as much as it raises VE. Walking it saves about 18%.
+- **Timing beats slowing down** (`assess-risk.ipynb`). At any steady PM2.5 a run adds about 20% to the day's dose, so
+  the hour's PM2.5 sets the risk. A cleaner start time is the change that moves the level.
+
+## Models
+
+All are ordinary least squares on log VE with hinge terms, back-transformed with Duan smearing, and cross-validated
+5-fold with each person entirely in train or test. Gradient boosting did no better on inputs an app can have, so the
+formulas ship as a few coefficients in `web/src/lib/*.json`. Tests check the TypeScript port against the notebooks'
+own outputs.
+
+| Model            | Inputs                                                   | Median error      | 80% band     |
+| ---------------- | -------------------------------------------------------- | ----------------- | ------------ |
+| Run A            | speed, age, sex, weight, height                          | 11.2%             | −20% to +19% |
+| Run B            | A + peak speed from a recent race (Riegel, then ÷ 0.876) | 9.8%              | −17% to +16% |
+| Run C            | A + average HR at the planned pace from recent runs      | 10.8%             | −17% to +17% |
+| Other activities | Compendium MET → VO2, plus profile                       | 12.2% for running | −28% to +35% |
+
+The run errors come from 116 people who did two or more tests, with one test standing in as history for the other.
+Notebooks are `calculate-ve.ipynb` (A, B, C) and `calculate-ve-others.ipynb` (MET route). The sport band adds an
+assumed ±25% MET spread to the measured running error, since the lab only has running.
+
+**Risk levels** (`assess-risk.ipynb`):
+
+| Level  | General                     | Vulnerable (also uses the band's upper VE) |
+| ------ | --------------------------- | ------------------------------------------ |
+| Low    | under 37.5 µg/m³ (WHO IT-3) | under 25                                   |
+| Medium | 37.5 to 75                  | 25 to 50                                   |
+| High   | 75 and up (above IT-1)      | 50 and up                                  |
+
+Heat, UV and rain are read at the worst hour the session touches. Apparent temperature of 32 °C is Medium and 35 °C
+High. UV 6 or a 50% chance of rain is Medium, and only UV 8+ together with a 70%+ chance of rain is High.
+
+## Decisions
+
+- **Day-equivalent dose, not the EPA hazard quotient.** The EPA recipe weights hours, not air, and compares one
+  session with annual limits. The dose keeps the hazard-quotient idea and swaps time for
+  air.
+- **High starts at haze levels.** Tainio et al. 2016 found that the benefit of exercise outweighs PM2.5 harm at 22 µg/m³
+  even for extreme amounts of activity, so a normal day should read as a day to go out.
+- **No NEA 1-hour override.** Any forecast hour over 150 µg/m³ used to force High, which showed a 10-minute session as
+  High next to 4 µg/m³. The level now comes from the day dose alone.
+- **A race time over heart rate.** Model B beats A by 10% on real repeat tests. HR on top of peak speed made it worse,
+  because history HR is about 7 bpm off the day's value.
+- **No language model in the arithmetic.** Embedding search picks a Compendium row, and the MET comes from the
+  database. An open-weight model (DeepSeek V4.1 Flash) only rephrases the card's own figures as a summary. Under 0.35
+  similarity the app says "Activity not found" and still shows the forecast.
+- **Google for PM2.5, CAMS as fallback.** Google starts from monitoring stations and follows NEA in haze. Plans more
+  than 12 hours out get a haze warning while PSI is above 100 or PM2.5 is above 55 µg/m³.
+- **Heat map on a Google Map.** Google's terms require it, so the page loads the Maps JavaScript API with its own
+  restricted browser key. The server fetches tiles with a separate key and caches each for up to an hour, as Google
+  allows. Google publishes no scale for its PM2.5 palette, so the legend was calibrated against 19 readings from
+  4 to 311 µg/m³.
+- **Only the web build happens off the VM.** Next.js has no s390x compiler, so a Mac builds a standalone JavaScript
+  bundle and the LinuxONE VM runs it in Docker behind nginx. See [web/README.md](web/README.md#deploying).
+
+## Limits
+
+- The lab data is indoor treadmill ramps of about 11 minutes at 15 to 32 °C and 48% humidity, 85% men aged 11 to 63.
+  Singapore heat, long sessions, hills and wind all push VE above these estimates. Over-63s, including ageing-centre
+  groups, get a warning and a rough estimate only.
+- Stop-start sports likely breathe more than their average MET implies.
+- The risk levels are this project's proposal. No agency scales WHO's 24-hour limits by breathing.
+- The result is inhaled mass, not the dose deposited in the lungs.
+
+## Repo
+
+| Path                                              | What                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `explore.ipynb`                                   | what VE depends on, and the findings above                                            |
+| `calculate-ve.ipynb`, `calculate-ve-others.ipynb` | the VE models and their export to the app                                             |
+| `assess-risk.ipynb`                               | dose, day-equivalent PM2.5, risk levels, alternatives                                 |
+| `air-weather-api.ipynb`, `detect.ipynb`           | Open-Meteo pipeline; heat, UV and rain rules and venue search                         |
+| `create-embedding.py`, `hazewise.db`              | the activity database and its embeddings                                              |
+| `web/`                                            | the Next.js app; [web/README.md](web/README.md) covers running, the API and deploying |
+
+The notebooks ran in JupyterLab on the VM (Python 3.12, with the repo under `~/shared`). They need pandas, numpy,
+scipy, statsmodels, scikit-learn, matplotlib, requests and ipywidgets. `create-embedding.py` needs
+`OPENROUTER_API_KEY`.
