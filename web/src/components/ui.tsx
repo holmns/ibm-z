@@ -36,6 +36,29 @@ export function StatusIcon({ level, size = 16 }: { level: Level; size?: number }
   );
 }
 
+// a level in a table cell whose column names the factor; the icon's shape carries the level without colour
+export function LevelMark({ level, name }: { level: Level | null; name: string }) {
+  if (!level) return <span className="text-muted" title={`${name}: not outside`}>–</span>;
+  return (
+    <span className="inline-flex" title={`${name}: ${level}`}>
+      <StatusIcon level={level} />
+      <span className="sr-only">{`${name} ${level}`}</span>
+    </span>
+  );
+}
+
+export const FACTOR_COLUMNS = ["Air", "Heat", "UV", "Rain"] as const;
+
+export function LevelLegend() {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1">
+      {(["Low", "Medium", "High"] as Level[]).map((l) => (
+        <span key={l} className="inline-flex items-center gap-1.5"><StatusIcon level={l} size={14} />{l}</span>
+      ))}
+    </span>
+  );
+}
+
 export function StatusPill({ level, size = "md", children }: { level: Level; size?: "sm" | "md"; children?: ReactNode }) {
   return (
     <span

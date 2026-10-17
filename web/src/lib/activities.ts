@@ -1,5 +1,6 @@
-// Activity lookup in hazewise.db: calculate-ve-others.ipynb §2. Alias, then family name, then full-text search over the
-// 2024 Compendium. A family gives the code for the chosen intensity; a search hit gives its one code.
+// Activity lookup in hazewise.db by embedding: the text's vector against each 2024 Compendium description's
+// (activities.embedding, text-embedding-3-large). A family gives the code for the chosen intensity; any other row
+// gives its one code.
 import "server-only";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -23,19 +24,23 @@ export type ActivityMatch = Activity & {
   matchedBy: "family" | "search";
 };
 
-// words that describe the session rather than the activity; dropped before full-text search
-const STOPWORDS = new Set((
-  "a an and at for from go going do doing done i in into my of on or our play playing some the to with we " +
-  "class classes session sessions training practice workout morning evening afternoon night today tonight tomorrow " +
-  "weekend friends friend group easy light moderate hard vigorous intense casual competitive min mins minute minutes " +
-  "hour hours hr hrs km k").split(" "));
+// cosine cut-offs, read off test queries: gibberish ("asdf qwer") scores 0.23 and the weakest real match ("hike bukit
+// timah" -> Hiking, cross country) 0.38. Under LOOSE_SIMILARITY the match comes with a note to check it.
+export const MIN_SIMILARITY = 0.35;
+export const LOOSE_SIMILARITY = 0.45;
+// rows this close to the best row count as ties. A family row among them wins, since families carry the three
+// intensities ("tennis" -> Tennis, doubles 0.665 vs Tennis, general 0.627; wrong families start near 0.09, "Muay Thai
+// class" -> Zumba). Otherwise the row whose effort is the text's intensity, or moderate, wins ("kayaking" ->
+// competition 0.712 vs moderate effort 0.671).
+const TIE_MARGIN = 0.06;
 
 type Row = { code: string; major_heading: string; met: number; name: string; indoor_only: number; exercise_relevant: number };
 const COLS = "a.code, a.major_heading, a.met, a.name, a.indoor_only, a.exercise_relevant";
 
 let db: DatabaseSync | null = null;
 let families: Map<string, Family> | null = null;
-let aliases: [string, string][] | null = null;
+let familyCodes: Map<string, string> | null = null;
+let index: { codes: string[]; efforts: (string | null)[]; dim: number; vectors: Float32Array } | null = null;
 
 // the database sits at the repo root, next to the notebooks; HAZEWISE_DB overrides
 function open() {
@@ -47,14 +52,6 @@ const toActivity = (r: Row): Activity => ({
   code: r.code, majorHeading: r.major_heading, met: r.met, name: r.name, indoorOnly: r.indoor_only === 1,
   exerciseRelevant: r.exercise_relevant === 1,
 });
-
-export function norm(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean).join(" ");
-}
-
-export function searchTerms(text: string) {
-  return norm(text).split(" ").filter((w) => w.length > 1 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
-}
 
 const byCode = new Map<string, Activity | null>();
 
@@ -78,33 +75,38 @@ export function allFamilies(): Map<string, Family> {
   return families;
 }
 
-function allAliases() {
-  if (!aliases) {
-    aliases = (open().prepare("select alias, family from family_aliases").all() as { alias: string; family: string }[])
-      .map((a) => [a.alias, a.family]);
+// code -> family, for the three codes of every family
+function familyOf(code: string) {
+  if (!familyCodes) {
+    familyCodes = new Map();
+    for (const f of allFamilies().values()) for (const a of Object.values(f.levels)) familyCodes.set(a.code, f.family);
   }
-  return aliases;
+  return familyCodes.get(code) ?? null;
 }
 
-// the longest alias or family name that appears as whole words; ties go to the later string, like Python's max()
-export function findFamily(text: string): string | null {
-  const t = ` ${norm(text)} `;
-  const hits: [number, string, string][] = [];
-  for (const [a, f] of allAliases()) if (t.includes(` ${norm(a)} `)) hits.push([a.length, a, f]);
-  for (const f of allFamilies().keys()) if (t.includes(` ${norm(f)} `)) hits.push([f.length, f, f]);
-  if (!hits.length) return null;
-  hits.sort((x, y) => x[0] - y[0] || (x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0) || (x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0));
-  return hits[hits.length - 1][2];
-}
-
-export function ftsSearch(text: string, limit = 5): Activity[] {
-  const tokens = searchTerms(text);
-  if (!tokens.length) return [];
-  const q = tokens.map((w) => `"${w}"`).join(" "); // every term must match
-  const rows = open().prepare(
-    `select ${COLS} from activities_fts f join activities a on a.code = f.code where activities_fts match ? ` +
-    "order by a.exercise_relevant desc, f.rank, a.code limit ?").all(q, limit) as Row[];
-  return rows.map(toActivity);
+// every embedding as unit vectors in one array, so a search is one dot product per row
+function embeddings() {
+  if (!index) {
+    const codes: string[] = [];
+    const efforts: (string | null)[] = [];
+    const vecs: number[][] = [];
+    for (const r of open().prepare("select code, effort, embedding from activities where embedding is not null order by code")
+      .iterate() as Iterable<{ code: string; effort: string | null; embedding: string }>) {
+      codes.push(r.code);
+      efforts.push(r.effort);
+      vecs.push(JSON.parse(r.embedding));
+    }
+    if (!vecs.length) throw new Error("hazewise.db has no activity embeddings");
+    const dim = vecs[0].length;
+    const vectors = new Float32Array(codes.length * dim);
+    vecs.forEach((v, i) => {
+      if (v.length !== dim) throw new Error(`activity ${codes[i]} has a ${v.length}-dimension embedding, not ${dim}`);
+      const n = Math.hypot(...v);
+      for (let j = 0; j < dim; j++) vectors[i * dim + j] = v[j] / n;
+    });
+    index = { codes, efforts, dim, vectors };
+  }
+  return index;
 }
 
 export function familyMatch(family: string, intensity: Intensity): ActivityMatch | null {
@@ -129,11 +131,32 @@ export function toInfo(m: ActivityMatch): ActivityInfo {
   };
 }
 
-export function resolveActivity(text: string, intensity: Intensity = "moderate"): ActivityMatch | null {
-  const inten = INTENSITIES.includes(intensity) ? intensity : "moderate";
-  const fam = findFamily(text);
-  if (fam) return familyMatch(fam, inten);
-  const hits = ftsSearch(text);
-  if (hits.length) return { ...hits[0], family: null, familyName: null, intensity: null, matchedBy: "search" };
-  return null;
+// the closest row to the text's embedding, and its cosine, with ties settled as TIE_MARGIN says. Any row under
+// Running, treadmill included, counts as the running family: runs go to the pace model, never to a running MET.
+// intensity picks the family's level (moderate if the text named none).
+export function matchVector(query: ArrayLike<number>, intensity: Intensity | null = null) {
+  const { codes, efforts, dim, vectors } = embeddings();
+  if (query.length !== dim) throw new Error(`query embedding has ${query.length} dimensions, the database ${dim}`);
+  const inten = intensity && INTENSITIES.includes(intensity) ? intensity : "moderate";
+  let n = 0;
+  for (let j = 0; j < dim; j++) n += query[j] * query[j];
+  n = Math.sqrt(n) || 1;
+  const sims = new Float64Array(codes.length);
+  let best = 0;
+  for (let i = 0; i < codes.length; i++) {
+    let sim = 0;
+    for (let j = 0, o = i * dim; j < dim; j++) sim += vectors[o + j] * query[j];
+    sims[i] = sim / n;
+    if (sims[i] > sims[best]) best = i;
+  }
+  if (sims[best] < MIN_SIMILARITY) return { match: null, similarity: sims[best] };
+  const tied = (pred: (i: number) => boolean) => {
+    let k = -1;
+    for (let i = 0; i < codes.length; i++) if (sims[i] >= sims[best] - TIE_MARGIN && pred(i) && (k < 0 || sims[i] > sims[k])) k = i;
+    return k < 0 ? null : k;
+  };
+  const hit = tied((i) => familyOf(codes[i]) !== null) ?? tied((i) => efforts[i] === inten) ?? best;
+  const a = activityByCode(codes[hit])!;
+  const family = a.majorHeading === "Running" ? "running" : familyOf(a.code);
+  return { match: family ? familyMatch(family, inten) : codeMatch(a.code), similarity: sims[best] };
 }

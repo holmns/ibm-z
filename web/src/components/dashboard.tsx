@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { applyLookup, defaultForm, defaultStart, needsLookup, startInstant, toRequest, type FormState } from "@/lib/form";
+import { hazeWarning } from "@/lib/haze";
 import { isActivityPlan, type ActivityLookup } from "@/lib/session";
 import { fmtDayTime, localDateKey, pad, wallParts } from "@/lib/time";
 import type { AssessResult, NotFoundResponse, OptionRow, VenuesRequest } from "@/lib/types";
@@ -12,7 +13,7 @@ import { PlanForm } from "./plan-form";
 import { StartTimesChart } from "./start-times-chart";
 import { Card, Spinner } from "./ui";
 import { Venues, type VenuesState } from "./venues";
-import { StatTiles, Verdict } from "./verdict";
+import { CAMS_NOTE, Caution, DoseCard, Verdict } from "./verdict";
 
 const STORAGE_KEY = "hazewise.plan.v2";
 
@@ -58,9 +59,11 @@ function NotFound({ r }: { r: NotFoundResponse }) {
           The forecast for {r.place.name} below still applies. Try the sport&apos;s common name, such as “badminton”,
           “Muay Thai” or “park gym”.
         </p>
+        {r.pmSource === "cams" && <Caution>{CAMS_NOTE}</Caution>}
+        {hazeWarning(r, r.start) && <Caution>{hazeWarning(r, r.start)}</Caution>}
       </Card>
       <ConditionsChart timeline={r.timeline} tz={r.timezone} runStart={r.start} runEnd={r.end} placeName={r.place.name}
-        label="Your session" />
+        psi={r.psi} label="Your session" />
     </>
   );
 }
@@ -127,7 +130,7 @@ export function Dashboard() {
       setVenues({ status: "loading" });
       const vreq: VenuesRequest = {
         lat: f.place.lat, lon: f.place.lon, start: r.planned.start, plan: req.plan, person: req.person,
-        history: req.history, group: req.group, indoorRatio: req.indoorRatio,
+        history: req.history, group: req.group, outdoorHours: req.outdoorHours,
         preferIndoor: r.planned.level !== "Low" || (r.planned.factors.precipProbPct ?? 0) >= 50,
       };
       fetch("/api/venues", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(vreq) })
@@ -219,9 +222,9 @@ export function Dashboard() {
           {result?.found && (
             <div className={`space-y-4 transition-opacity duration-200 ${pending ? "pointer-events-none opacity-55" : ""}`}>
               <Verdict r={result} onApply={apply} />
-              <StatTiles r={result} />
+              <DoseCard r={result} />
               <ConditionsChart timeline={result.timeline} tz={result.timezone} runStart={result.planned.start}
-                runEnd={result.planned.end} placeName={result.place.name}
+                runEnd={result.planned.end} placeName={result.place.name} psi={result.psi}
                 label={isActivityPlan(result.plan) ? "Your session" : "Your run"} />
               <StartTimesChart byStart={result.byStart} t0={result.timeline[0].t} t1={result.timeline[result.timeline.length - 1].t}
                 tz={result.timezone} planned={result.planned.start} plannedLevel={result.planned.level} onPick={pickStart}

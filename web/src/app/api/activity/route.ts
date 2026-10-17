@@ -1,4 +1,5 @@
 import { lookupActivity } from "@/lib/lookup";
+import { ServiceError } from "@/lib/openrouter";
 
 export async function POST(request: Request) {
   let text: unknown;
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   try {
     return Response.json(await lookupActivity(text.trim()));
   } catch (e) {
+    if (e instanceof ServiceError) return Response.json({ error: e.message }, { status: e.status });
     console.error(e);
     return Response.json({ error: "The activity database could not be read." }, { status: 500 });
   }

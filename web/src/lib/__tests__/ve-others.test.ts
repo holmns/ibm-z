@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityByCode, resolveActivity } from "../activities";
-import type { Intensity } from "../session";
+import { activityByCode } from "../activities";
 import type { Person } from "../ve";
 import { estimateVeActivity } from "../ve-others";
 import golden from "./ve-others.golden.json";
@@ -21,18 +20,6 @@ describe("estimateVeActivity matches calculate-ve-others.ipynb", () => {
       }
       expect(r.notes).toEqual(g.out.notes);
       expect(r.warnings).toEqual(g.out.warnings);
-    });
-  }
-});
-
-describe("resolveActivity matches the notebook's lookup", () => {
-  for (const l of golden.lookups) {
-    it(JSON.stringify(l.text), () => {
-      for (const inten of ["light", "moderate", "vigorous"] as Intensity[]) {
-        const m = resolveActivity(l.text, inten);
-        const want = (l.out as Record<string, { code: string; family: string | null; matched_by: string } | null>)[inten];
-        expect(m && { code: m.code, family: m.family, matched_by: m.matchedBy }).toEqual(want);
-      }
     });
   }
 });

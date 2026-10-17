@@ -12,7 +12,8 @@ export type HistoryRun = { distanceKm: number; time: string; avgHr: number };
 export type History = { bestEffort?: BestEffort | null; runs?: HistoryRun[] | null };
 export type Variant = "A" | "B" | "C";
 
-// runs use variants A-C from pace; other activities use "MET" (ve-others.ts), with no speed and the MET fields set
+// runs use variants A-C from pace and set the run fields; other activities use "MET" (ve-others.ts), with no speed
+// and the MET fields set
 export type VeResult = {
   variant: Variant | "MET";
   speedKmh: number | null;
@@ -28,6 +29,9 @@ export type VeResult = {
   met?: number;
   vo2MlMin?: number;
   bandKind?: "gait" | "sport";
+  vpeakKmh?: number | null;
+  vpeakLabMedian?: number;
+  hrAtPace?: number | null;
 };
 
 type Row = { Speed: number; Age: number; Sex: number; Weight: number; Height: number; HR: number; vpeak: number };
@@ -141,7 +145,8 @@ export function estimateVe(plan: Plan, person: Person, history: History = {}): V
   return {
     variant, speedKmh: speed, minutes, veLmin: ve, veP10: ve * band.p10, veP90: ve * band.p90,
     airM3: (ve * minutes) / 1000, airP10M3: (ve * band.p10 * minutes) / 1000, airP90M3: (ve * band.p90 * minutes) / 1000,
-    notes, warnings: warn,
+    notes, warnings: warn, vpeakKmh: Number.isNaN(x.vpeak) ? null : x.vpeak, vpeakLabMedian: model.vpeakLabMedian,
+    hrAtPace: hr,
   };
 }
 

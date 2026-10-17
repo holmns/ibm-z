@@ -11,9 +11,9 @@ export type RunRow = { distanceKm: string; time: string; avgHr: string };
 
 // what the activity text was last looked up as; text is the input it belongs to, so an edit shows it is stale
 export type ActivityChoice =
-  | { kind: "run"; text: string; source: "gemini" | "rules" | null; note: string | null }
-  | { kind: "activity"; text: string; info: ActivityInfo; intensity: Intensity; source: "gemini" | "rules"; note: string | null }
-  | { kind: "not-found"; text: string; source: "gemini" | "rules"; note: string | null };
+  | { kind: "run"; text: string; note: string | null }
+  | { kind: "activity"; text: string; info: ActivityInfo; intensity: Intensity; note: string | null }
+  | { kind: "not-found"; text: string; note: string | null };
 
 export type FormState = {
   place: Place;
@@ -31,7 +31,7 @@ export type FormState = {
   bestEffort: { distanceKm: string; time: string } | null;
   runs: RunRow[];
   group: Group;
-  indoorPct: number;
+  outdoorHours: number;
 };
 
 // tonight 20:00, or tomorrow's if that has passed (assess-risk.ipynb's START = "20:00")
@@ -47,7 +47,7 @@ export function defaultForm(): FormState {
     place: { name: "East Coast Park", lat: 1.301, lon: 103.912 },
     ...defaultStart(),
     activityText: "Running",
-    activity: { kind: "run", text: "Running", source: null, note: null },
+    activity: { kind: "run", text: "Running", note: null },
     minutes: "60",
     distanceKm: "10",
     pace: "6:00",
@@ -62,7 +62,7 @@ export function defaultForm(): FormState {
       { distanceKm: "10", time: "58:00", avgHr: "160" },
     ],
     group: "general",
-    indoorPct: 100,
+    outdoorHours: 24,
   };
 }
 
@@ -99,14 +99,14 @@ export function applyLookup(f: FormState, l: ActivityLookup, now = Date.now() / 
   const p = l.parsed;
   const out: FormState = { ...f, activityText: l.text };
   if (l.kind === "run") {
-    out.activity = { kind: "run", text: l.text, source: p.source, note: p.note };
+    out.activity = { kind: "run", text: l.text, note: l.note };
     if (p.pace) out.pace = p.pace;
     if (p.distanceKm) out.distanceKm = String(p.distanceKm);
     else if (p.minutes && isDuration(out.pace)) out.distanceKm = String(Math.round((p.minutes / toMinutes(out.pace)) * 10) / 10);
   } else {
     out.activity = l.kind === "activity" && l.match
-      ? { kind: "activity", text: l.text, info: l.match, intensity: l.match.intensity ?? p.intensity ?? "moderate", source: p.source, note: p.note }
-      : { kind: "not-found", text: l.text, source: p.source, note: p.note };
+      ? { kind: "activity", text: l.text, info: l.match, intensity: l.match.intensity ?? p.intensity ?? "moderate", note: l.note }
+      : { kind: "not-found", text: l.text, note: l.note };
     if (p.minutes) out.minutes = String(p.minutes);
   }
   if (p.startTime) out.time = p.startTime;
@@ -146,7 +146,7 @@ export function toRequest(f: FormState): AssessRequest | { error: string } {
       runs: runs.map((r) => ({ distanceKm: n(r.distanceKm), time: r.time.trim(), avgHr: n(r.avgHr) })),
     },
     group: f.group,
-    indoorRatio: f.indoorPct / 100,
+    outdoorHours: f.outdoorHours,
   };
 }
 

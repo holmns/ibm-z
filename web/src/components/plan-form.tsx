@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, type ReactNode } from "react";
 import { fmt } from "@/lib/format";
+import { fmtShort } from "@/lib/num";
 import { dayOptions, needsLookup, paceInfo, type FormState, type RunRow } from "@/lib/form";
 import { activityTitle, INTENSITIES } from "@/lib/session";
 import { PlaceSearch } from "./place-search";
@@ -72,17 +73,17 @@ function ActivityStatus({ form, error, pending }: { form: FormState; error: stri
   if (needsLookup(form)) {
     return <p className="text-xs leading-[18px] text-ink-2">Press Look up, or Assess, to match this to an activity.</p>;
   }
-  const via = a.source === "gemini" ? "Read by Gemini, " : a.source === "rules" ? "Keyword match, " : "";
   return (
     <div className="space-y-1 text-xs leading-[18px]">
       {a.kind === "run" && (
-        <p className="text-ink-2">{via}running: uses your pace, distance and running history.</p>
+        <p className="text-ink-2">Running: uses your pace, distance and running history.</p>
       )}
       {a.kind === "activity" && (
         <p className="text-ink-2">
-          {via}matched <span className="font-medium text-ink">{activityTitle(a.info)}</span>:{" "}
-          {(a.info.levels?.[a.intensity] ?? a.info).name}, {fmt((a.info.levels?.[a.intensity] ?? a.info).met, 1)} MET
-          (Compendium {(a.info.levels?.[a.intensity] ?? a.info).code}).
+          Matched <span className="font-medium text-ink">{activityTitle(a.info)}</span>:{" "}
+          {/* a family shows the row for the intensity; any other match is already named by its title */}
+          {a.info.levels && `${a.info.levels[a.intensity].name}, `}
+          {fmt((a.info.levels?.[a.intensity] ?? a.info).met, 1)} MET (Compendium {(a.info.levels?.[a.intensity] ?? a.info).code}).
           {a.info.indoorOnly && " Usually done indoors, so outdoor air overstates the dose."}
         </p>
       )}
@@ -117,7 +118,7 @@ export function PlanForm({ form, set, onSubmit, pending, dirty, onLookup, lookup
         <Field label="Place">
           <PlaceSearch value={form.place} onChange={(place) => set({ place })} />
         </Field>
-        <div className="grid grid-cols-[1fr_7.5rem] gap-3">
+        <div className="grid grid-cols-[1fr_9rem] gap-3">
           <Field label="Day" htmlFor="day">
             <select id="day" className={`${inputClass} appearance-none bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-8`}
               style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23898781' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
@@ -127,7 +128,8 @@ export function PlanForm({ form, set, onSubmit, pending, dirty, onLookup, lookup
             </select>
           </Field>
           <Field label="Start" htmlFor="time">
-            <input id="time" type="time" step={900} className={`${inputClass} tnum`} value={form.time}
+            {/* 9rem and pr-2 leave room for a 12-hour "08:00 PM" beside the clock icon */}
+            <input id="time" type="time" step={900} className={`${inputClass} tnum pr-2`} value={form.time}
               onChange={(e) => set({ time: e.target.value })} />
           </Field>
         </div>
@@ -174,7 +176,7 @@ export function PlanForm({ form, set, onSubmit, pending, dirty, onLookup, lookup
           </div>
         ) : (
           <Field label="Duration" htmlFor="minutes">
-            <SuffixInput id="minutes" suffix="min" inputMode="numeric" type="number" step="5" min="1" max="600"
+            <SuffixInput id="minutes" suffix="min" inputMode="numeric" type="number" step="1" min="1" max="600"
               value={form.minutes} onChange={(e) => set({ minutes: e.target.value })} />
           </Field>
         )}
@@ -277,14 +279,14 @@ export function PlanForm({ form, set, onSubmit, pending, dirty, onLookup, lookup
             ? "Switch to vulnerable for older adults, children, pregnancy, or heart or lung disease."
             : "Stricter levels, and breathing is taken from the top of the estimate's range."}
         </p>
-        <Field label="Air for the rest of the day" htmlFor="indoor"
-          hint={form.indoorPct === 100 ? "Assumes outdoor air all day, the cautious default."
-            : form.indoorPct === 0 ? "Counts only the run, as if the rest of the day's air were perfectly clean."
-              : `Assumes the rest of your day is spent in air with ${form.indoorPct}% of outdoor PM2.5.`}>
+        <Field label="Air for the rest of the day" htmlFor="outdoor"
+          hint={form.outdoorHours === 24 ? "Assumes outdoor air all day, the cautious default."
+            : form.outdoorHours === 0 ? `Counts only the ${isRun ? "run" : "session"}, as if the rest of the day's air were perfectly clean.`
+              : `Assumes ${fmtShort(form.outdoorHours)} h outdoors besides the ${isRun ? "run" : "session"}, and clean air indoors.`}>
           <div className="flex items-center gap-3">
-            <input id="indoor" type="range" min={0} max={100} step={10} value={form.indoorPct}
-              onChange={(e) => set({ indoorPct: Number(e.target.value) })} className="h-9 w-full" />
-            <span className="w-11 text-right text-sm text-ink tnum">{form.indoorPct}%</span>
+            <input id="outdoor" type="range" min={0} max={24} step={0.5} value={form.outdoorHours}
+              onChange={(e) => set({ outdoorHours: Number(e.target.value) })} className="h-9 w-full" />
+            <span className="w-12 shrink-0 text-right text-sm text-ink tnum">{fmtShort(form.outdoorHours)} h</span>
           </div>
         </Field>
       </Section>

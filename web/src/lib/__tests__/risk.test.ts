@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assess, riskLevel, vDay, type Group } from "../risk";
+import { assess, outdoorShare, riskLevel, vDay, type Group } from "../risk";
 import golden from "./assess.golden.json";
 
 const TZ = "Asia/Singapore";
@@ -50,4 +50,13 @@ describe("assess matches the notebook on a non-flat series", () => {
       expect(r.notes).toEqual(c.out.notes);
     });
   }
+});
+
+describe("outdoorShare", () => {
+  it("spreads the hours outdoors over the day's other minutes", () => {
+    expect(outdoorShare(24, 60)).toBe(1);
+    expect(outdoorShare(0, 60)).toBe(0);
+    expect(outdoorShare(11.5, 60)).toBeCloseTo(0.5, 12);
+    expect(outdoorShare(12, 0)).toBe(0.5);
+  });
 });

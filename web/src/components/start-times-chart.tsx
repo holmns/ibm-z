@@ -6,7 +6,7 @@ import type { Level } from "@/lib/risk";
 import { fmtDayTime } from "@/lib/time";
 import type { StartOption } from "@/lib/types";
 import { linear, M, niceTicks, timeTicks, TipRow, Tooltip, useWidth } from "./chart-kit";
-import { Card, CardHeader, STATUS_COLOR, StatusIcon, StatusPill, TextButton } from "./ui";
+import { Card, CardHeader, FACTOR_COLUMNS, LevelLegend, LevelMark, STATUS_COLOR, StatusIcon, StatusPill, TextButton } from "./ui";
 
 const PLOT_H = 132;
 const TOP = 30;
@@ -46,9 +46,7 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
         action={<TextButton onClick={() => setTable((v) => !v)} pressed={table}>{table ? "Chart" : "Table"}</TextButton>}
       />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-1 text-[13px] text-ink-2">
-        {(["Low", "Medium", "High"] as Level[]).map((l) => (
-          <span key={l} className="inline-flex items-center gap-1.5"><StatusIcon level={l} size={14} />{l}</span>
-        ))}
+        <LevelLegend />
         <span className="text-muted">Every hourly start within the PM2.5 forecast</span>
       </div>
       {table ? (
@@ -56,8 +54,9 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
           <table className="w-full text-[13px] tnum">
             <thead className="sticky top-0 bg-surface text-left text-ink-2">
               <tr className="border-b border-line">
-                {["Start", "Inhaled µg", "Day-equivalent µg/m³", "PM2.5", "Heat, UV, rain", "Overall", ""].map((c, i) => (
-                  <th key={i} className={`px-4 py-2 font-medium ${i === 1 || i === 2 ? "text-right" : ""}`}>{c}</th>
+                {["Start", `${noun === "run" ? "Run" : "Session"} dose µg`, "Day's PM2.5 µg/m³", ...FACTOR_COLUMNS, "Overall", ""].map((c, i) => (
+                  <th key={i} className={`py-2 font-medium whitespace-nowrap ${i === 1 || i === 2 ? "px-4 text-right"
+                    : i >= 3 && i <= 6 ? "px-2 text-center" : "px-4"}`}>{c}</th>
                 ))}
               </tr>
             </thead>
@@ -67,8 +66,10 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                   <td className="px-4 py-1.5 whitespace-nowrap">{fmtDayTime(s.start, tz)}</td>
                   <td className="px-4 py-1.5 text-right">{fmt(s.runUg)}</td>
                   <td className="px-4 py-1.5 text-right">{fmt(s.cEq, 1)}</td>
-                  <td className="px-4 py-1.5"><StatusPill level={s.pmLevel} size="sm" /></td>
-                  <td className="px-4 py-1.5"><StatusPill level={s.factorsLevel} size="sm" /></td>
+                  <td className="px-2 py-1.5 text-center"><LevelMark name="Air" level={s.pmLevel} /></td>
+                  <td className="px-2 py-1.5 text-center"><LevelMark name="Heat" level={s.parts.heat} /></td>
+                  <td className="px-2 py-1.5 text-center"><LevelMark name="UV" level={s.parts.uv} /></td>
+                  <td className="px-2 py-1.5 text-center"><LevelMark name="Rain" level={s.parts.rain} /></td>
                   <td className="px-4 py-1.5"><StatusPill level={s.level} size="sm" /></td>
                   <td className="px-4 py-1.5 text-right">
                     {s.start === planned ? <span className="text-xs text-ink-2">planned</span> : (
@@ -161,10 +162,13 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                   <span className="font-medium text-ink">{fmtDayTime(h.start, tz)}</span>
                   <StatusPill level={h.level} size="sm" />
                 </div>
-                <TipRow value={`${fmt(h.runUg)} µg`} label={`inhaled in the ${noun}`} />
-                <TipRow value={`${fmt(h.cEq, 1)} µg/m³`} label="day-equivalent" />
-                <TipRow value={h.pmLevel} label="PM2.5 level" />
-                <TipRow value={h.factorsLevel} label="heat, UV, rain" />
+                <TipRow value={`${fmt(h.runUg)} µg`} label={`breathed in on the ${noun}`} />
+                <TipRow value={`${fmt(h.cEq, 1)} µg/m³`} label="your day's PM2.5" />
+                <div className="mt-2 flex gap-3 text-xs text-ink-2">
+                  {([["Air", h.pmLevel], ["Heat", h.parts.heat], ["UV", h.parts.uv], ["Rain", h.parts.rain]] as const).map(([n, l]) => (
+                    <span key={n} className="inline-flex items-center gap-1"><StatusIcon level={l} size={12} />{n}</span>
+                  ))}
+                </div>
                 <div className="mt-1.5 text-xs text-ink-2">
                   {h.start === planned ? "Your planned start"
                     : h.level === plannedLevel ? "Same level as planned. Select to plan it."

@@ -19,6 +19,23 @@ export type FactorReason =
 export type FactorValues = { apparentTempC: number | null; uvIndex: number | null; precipProbPct: number | null;
   thunderstorm: boolean };
 
+export type FactorParts = { heat: Level; uv: Level; rain: Level };
+
+// each factor's own level; the worst of the three is detect.ipynb's level. Its one joint rule, UV 8+ with a 70%+
+// chance of rain, raises both UV and rain to High, since neither causes it alone.
+export function factorParts(f: FactorValues): FactorParts & { combo: boolean } {
+  const heat = f.apparentTempC ?? -Infinity;
+  const uv = f.uvIndex ?? -Infinity;
+  const rain = f.precipProbPct ?? -Infinity;
+  const combo = uv >= UV_VERY_HIGH && rain >= RAIN_HIGH;
+  return {
+    heat: heat >= HEAT_VERY_HOT ? "High" : heat >= HEAT_HOT ? "Medium" : "Low",
+    uv: combo ? "High" : uv >= UV_HIGH ? "Medium" : "Low",
+    rain: combo ? "High" : rain >= RAIN_ELEVATED ? "Medium" : "Low",
+    combo,
+  };
+}
+
 export function factorRisk(f: FactorValues): { level: Level; reasons: FactorReason[] } {
   const heat = f.apparentTempC ?? -Infinity;
   const uv = f.uvIndex ?? -Infinity;

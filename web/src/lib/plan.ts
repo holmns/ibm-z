@@ -4,14 +4,16 @@
 // forecast alone.
 import "server-only";
 import { codeMatch, familyMatch, toInfo, type ActivityMatch } from "./activities";
-import { factorRisk } from "./factors";
+import { factorParts, factorRisk } from "./factors";
 import { fmtShort, roundHalfEven } from "./num";
-import { conditionsTimeline, type Hour, type Timeline } from "./openmeteo";
-import { assess, LEVEL_RANK, riskLevel, runHourSpan, worst, type PmSeries } from "./risk";
+import { airTimeline, type AirTimeline } from "./conditions";
+import { neaPsi } from "./nea";
+import type { Hour } from "./openmeteo";
+import { assess, LEVEL_RANK, outdoorShare, riskLevel, runHourSpan, worst, type PmSeries } from "./risk";
 import { INTENSITIES, isActivityPlan, noun, type ActivityPlan, type SessionPlan } from "./session";
 import { fmtDayTime, localDateKey, pad, parseLocal, wallParts } from "./time";
 import type {
-  AssessRequest, AssessResult, Conditions, Factors, OptionRow, PlanInputs, RunResult, StartOption,
+  AssessRequest, AssessResult, Conditions, Factors, OptionRow, PlanInputs, Psi, RunResult, StartOption,
 } from "./types";
 import { isDuration, toMinutes } from "./duration";
 import { estimateVe, type Plan, type VeResult } from "./ve";
@@ -23,9 +25,9 @@ const NOW_WINDOW = 30 * 60;
 const FIRST_START_HOUR = 5;
 const LAST_START_HOUR = 21;
 
-type Context = { tl: Timeline; pm: PmSeries; tz: string; byT: Map<number, Hour> };
+type Context = { tl: AirTimeline; pm: PmSeries; tz: string; byT: Map<number, Hour> };
 
-function context(tl: Timeline): Context {
+function context(tl: AirTimeline): Context {
   const withPm = tl.hours.filter((h) => h.pm25 !== null);
   if (withPm.length < 2) throw new InputError("No PM2.5 forecast is available for this place.");
   return {
@@ -44,7 +46,8 @@ function factorsOver(ctx: Context, h0: number, h1: number): Factors {
     apparentTempC: max("apparentTempC"), uvIndex: max("uvIndex"), precipProbPct: max("precipProbPct"),
     thunderstorm: hours.some((h) => h.weatherCode !== null && [95, 96, 99].includes(h.weatherCode)),
   };
-  return { ...values, ...factorRisk(values) };
+  const { combo, ...parts } = factorParts(values);
+  return { ...values, ...factorRisk(values), parts, combo };
 }
 
 function pmLast(ctx: Context) {
@@ -61,6 +64,8 @@ function veFor(inputs: PlanInputs, plan: SessionPlan): VeResult {
   if (!isActivityPlan(plan)) return estimateVe(plan, inputs.person, inputs.history);
   const a = activityFor(plan);
   if (!a) throw new InputError(`Activity not found: ${plan.text}.`);
+  // runs go through the pace model above; a running MET is never used
+  if (a.majorHeading === "Running") throw new InputError("A run takes a pace and distance. Look up the activity again.");
   return estimateVeActivity(a, plan.minutes, inputs.person);
 }
 
@@ -72,7 +77,8 @@ function runRisk(ctx: Context, inputs: PlanInputs, plan: SessionPlan, start: num
     throw new InputError(`The ${noun(plan)} ends ${fmtDayTime(end, ctx.tz)}, after the PM2.5 forecast ends at ` +
       `${fmtDayTime(pmLast(ctx), ctx.tz)}. Pick an earlier start or a shorter ${noun(plan)}.`);
   }
-  const r = assess(ctx.pm, start, v.minutes, ve, inputs.person.age, ctx.tz, inputs.group, inputs.indoorRatio);
+  const r = assess(ctx.pm, start, v.minutes, ve, inputs.person.age, ctx.tz, inputs.group,
+    outdoorShare(inputs.outdoorHours, v.minutes));
   const n = Math.max(1, roundHalfEven(v.minutes));
   const [h0, h1] = runHourSpan(ctx.pm, start, start + 60 * (n - 1));
   const factors = factorsOver(ctx, h0, h1);
@@ -84,7 +90,7 @@ function runRisk(ctx: Context, inputs: PlanInputs, plan: SessionPlan, start: num
 }
 
 function validate(req: AssessRequest | PlanInputs) {
-  const { plan, person, history, group, indoorRatio } = req;
+  const { plan, person, history, group, outdoorHours } = req;
   const isTime = (s: unknown) => typeof s === "string" && isDuration(s);
   const num = (x: unknown, lo: number, hi: number) => typeof x === "number" && Number.isFinite(x) && x >= lo && x <= hi;
   const strOrNull = (x: unknown) => x === null || (typeof x === "string" && x.length <= 300);
@@ -118,7 +124,7 @@ function validate(req: AssessRequest | PlanInputs) {
     }
   }
   if (group !== "general" && group !== "vulnerable") throw new InputError("Group must be general or vulnerable.");
-  if (!num(indoorRatio, 0, 1)) throw new InputError("Air for the rest of the day must be between 0 and 100%.");
+  if (!num(outdoorHours, 0, 24)) throw new InputError("Hours outdoors must be between 0 and 24.");
 }
 
 function validatePlace(lat: unknown, lon: unknown) {
@@ -129,12 +135,12 @@ function validatePlace(lat: unknown, lon: unknown) {
 function startOption(r: RunResult): StartOption {
   return {
     start: r.start, runUg: r.runUg, cEq: r.cEq, runPmMean: r.runPmMean, pmLevel: r.pmLevel, factorsLevel: r.factors.level,
-    level: r.level, apparentTempC: r.factors.apparentTempC, uvIndex: r.factors.uvIndex,
+    parts: r.factors.parts, level: r.level, apparentTempC: r.factors.apparentTempC, uvIndex: r.factors.uvIndex,
     precipProbPct: r.factors.precipProbPct,
   };
 }
 
-function conditions(ctx: Context, req: AssessRequest, now: number): Conditions {
+function conditions(ctx: Context, req: AssessRequest, now: number, psi: Psi | null): Conditions {
   const t0 = ctx.pm.t[0];
   const from = t0 + Math.floor((now - t0) / 3600) * 3600;
   const timeline = ctx.tl.hours
@@ -143,7 +149,8 @@ function conditions(ctx: Context, req: AssessRequest, now: number): Conditions {
       { t, pm25, aqiUs, tempC, apparentTempC, uvIndex, precipProbPct, humidityPct, windMs, weatherCode, isDay }));
   return {
     place: req.place, timezone: ctx.tz, fetchedAt: Math.floor(now), aqGrid: ctx.tl.aqGrid, weatherGrid: ctx.tl.weatherGrid,
-    pmHorizon: pmLast(ctx), group: req.group, indoorRatio: req.indoorRatio, timeline,
+    pmHorizon: pmLast(ctx), pmSource: ctx.tl.pmSource, pmNow: ctx.tl.pmNow, psi, group: req.group,
+    outdoorHours: req.outdoorHours, timeline,
   };
 }
 
@@ -178,7 +185,8 @@ function changes(plan: SessionPlan): { key: string; label: string; kind: OptionR
 export async function assessPlan(req: AssessRequest): Promise<AssessResult> {
   validate(req);
   validatePlace(req.place?.lat, req.place?.lon);
-  const ctx = context(await conditionsTimeline(req.place.lat, req.place.lon));
+  const [tl, psi] = await Promise.all([airTimeline(req.place.lat, req.place.lon), neaPsi(req.place.lat, req.place.lon)]);
+  const ctx = context(tl);
   const { tz, pm } = ctx;
   const now = Date.now() / 1000;
   const start = parseLocal(req.start ?? "", tz);
@@ -187,15 +195,17 @@ export async function assessPlan(req: AssessRequest): Promise<AssessResult> {
 
   const activity = isActivityPlan(req.plan) ? activityFor(req.plan) : null;
   if (isActivityPlan(req.plan) && !activity) {
-    return { ...conditions(ctx, req, now), found: false, query: req.plan.text, start, end: start + req.plan.minutes * 60 };
+    return { ...conditions(ctx, req, now, psi), found: false, query: req.plan.text, start, end: start + req.plan.minutes * 60 };
   }
 
   const planned = runRisk(ctx, req, req.plan, start);
   const v = planned.ve;
-  const bandRun = (ve: number) => assess(pm, start, v.minutes, ve, req.person.age, tz, req.group, req.indoorRatio);
+  const bandRun = (ve: number) => assess(pm, start, v.minutes, ve, req.person.age, tz, req.group,
+    outdoorShare(req.outdoorHours, v.minutes));
   const lo = bandRun(v.veP10);
   const hi = bandRun(v.veP90);
-  const skipC = req.indoorRatio * planned.dayPmMean;
+  // skipping keeps the same hours outdoors, so the session's slot is spent indoors
+  const skipC = outdoorShare(req.outdoorHours, 0) * planned.dayPmMean;
   const skipLevel = riskLevel(skipC, 0, req.group).level;
 
   // the same session at every whole-hour start within the forecast, night included
@@ -219,14 +229,14 @@ export async function assessPlan(req: AssessRequest): Promise<AssessResult> {
   const row = (key: string, label: string, kind: OptionRow["kind"], plan: SessionPlan, r: RunResult): OptionRow => ({
     key, label, kind, plan, start: r.start, minutes: r.ve.minutes, veLmin: r.veUsed, runPmMean: r.runPmMean,
     runUg: r.runUg, vsPlannedUg: r.runUg - planned.runUg, cEq: r.cEq, pmLevel: r.pmLevel, factorsLevel: r.factors.level,
-    level: r.level,
+    parts: r.factors.parts, level: r.level,
   });
   const options: OptionRow[] = [
     row("planned", "As planned", "planned", req.plan, planned),
     {
       key: "skip", label: `Skip the ${noun(req.plan)}`, kind: "skip", plan: null, start, minutes: 0, veLmin: null,
       runPmMean: null, runUg: 0, vsPlannedUg: -planned.runUg, cEq: skipC, pmLevel: skipLevel, factorsLevel: null,
-      level: skipLevel,
+      parts: null, level: skipLevel,
     },
     ...changes(req.plan).map((c) => row(c.key, c.label, c.kind, c.plan, runRisk(ctx, req, c.plan, start))),
   ];
@@ -236,9 +246,13 @@ export async function assessPlan(req: AssessRequest): Promise<AssessResult> {
   }
 
   return {
-    ...conditions(ctx, req, now), found: true, plan: req.plan, activity: activity && toInfo(activity), planned,
+    ...conditions(ctx, req, now, psi), found: true, plan: req.plan, activity: activity && toInfo(activity), planned,
     band: { p10: { runUg: lo.runUg, cEq: lo.cEq }, p90: { runUg: hi.runUg, cEq: hi.cEq } },
-    skip: { cEq: skipC, level: skipLevel, ug: skipC * planned.vDayM3 }, byStart, options,
+    skip: {
+      cEq: skipC, level: skipLevel, ug: skipC * planned.vDayM3,
+      ugInRunSlot: skipC * planned.vDayM3 - planned.restUg,
+    },
+    byStart, options,
   };
 }
 
@@ -247,7 +261,7 @@ export async function assessAt(lat: number, lon: number, start: number, inputs: 
   validate(inputs);
   validatePlace(lat, lon);
   try {
-    return runRisk(context(await conditionsTimeline(lat, lon)), inputs, inputs.plan, start);
+    return runRisk(context(await airTimeline(lat, lon)), inputs, inputs.plan, start);
   } catch (e) {
     if (e instanceof InputError) return null;
     throw e;

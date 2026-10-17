@@ -1,5 +1,5 @@
 // Request and response shapes shared by the API routes and the dashboard.
-import type { FactorReason } from "./factors";
+import type { FactorParts, FactorReason } from "./factors";
 import type { Group, Level, PmReason } from "./risk";
 import type { ActivityInfo, SessionPlan } from "./session";
 import type { History, Person, VeResult } from "./ve";
@@ -11,7 +11,7 @@ export type PlanInputs = {
   person: Person;
   history: History;
   group: Group;
-  indoorRatio: number;
+  outdoorHours: number; // hours in outdoor air besides the session, 0 to 24
 };
 
 export type AssessRequest = PlanInputs & {
@@ -26,6 +26,8 @@ export type Factors = {
   thunderstorm: boolean;
   level: Level;
   reasons: FactorReason[];
+  parts: FactorParts;
+  combo: boolean;
 };
 
 export type RunResult = {
@@ -56,6 +58,7 @@ export type StartOption = {
   runPmMean: number;
   pmLevel: Level;
   factorsLevel: Level;
+  parts: FactorParts;
   level: Level;
   apparentTempC: number | null;
   uvIndex: number | null;
@@ -76,6 +79,7 @@ export type OptionRow = {
   cEq: number;
   pmLevel: Level;
   factorsLevel: Level | null;
+  parts: FactorParts | null;
   level: Level;
 };
 
@@ -101,10 +105,16 @@ export type Conditions = {
   aqGrid: [number, number];
   weatherGrid: [number, number];
   pmHorizon: number;
+  // google: Google's Air Quality API, which starts from station readings; cams: the CAMS model, which reads low in haze
+  pmSource: "google" | "cams";
+  pmNow: { t: number; pm25: number } | null; // Google's reading for the current hour
+  psi: Psi | null; // NEA's 24-hour PSI for the nearest region
   group: Group;
-  indoorRatio: number;
+  outdoorHours: number;
   timeline: TimelineHour[];
 };
+
+export type Psi = { value: number; region: string; t: number };
 
 export type AssessResponse = Conditions & {
   found: true;
@@ -112,7 +122,8 @@ export type AssessResponse = Conditions & {
   activity: ActivityInfo | null; // null for a run
   planned: RunResult;
   band: { p10: { runUg: number; cEq: number }; p90: { runUg: number; cEq: number } };
-  skip: { cEq: number; level: Level; ug: number }; // ug: the whole day breathed at the ordinary rate
+  // ug: the whole day breathed at the ordinary rate; ugInRunSlot: the part of that falling in the session's minutes
+  skip: { cEq: number; level: Level; ug: number; ugInRunSlot: number };
   byStart: StartOption[];
   options: OptionRow[];
 };
@@ -134,6 +145,27 @@ export type Venue = {
   pmLevel: Level | null;
   factorsLevel: Level | null;
   cEq: number | null;
+};
+
+// what the summary under the risk title may draw on: the dashboard's own figures, already formatted
+export type SummaryFacts = {
+  level: Level;
+  raisedBy: string[];
+  activity: "run" | "session";
+  plan: string;
+  place: string;
+  when: string;
+  thresholds: Group;
+  air: {
+    level: Level; dayPm25: string; lowBelow: string; highFrom: string; sessionAvgPm25: string; neaRating: string;
+    oneHourMakesItHigh: boolean;
+  };
+  heat: { level: Level; feelsLike: string | null };
+  uv: { level: Level; index: string | null };
+  rain: { level: Level; chanceOfRain: string | null; thunderstormForecast: boolean };
+  dose: { duringSession: string; addedToDay: string };
+  suggestion: string;
+  forecastCaveat: string | null; // the haze warning, when the card shows one
 };
 
 export type VenuesRequest = PlanInputs & { lat: number; lon: number; start: number; preferIndoor: boolean };

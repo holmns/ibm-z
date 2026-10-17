@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { HEAT_HOT, HEAT_VERY_HOT, RAIN_ELEVATED, RAIN_HIGH, UV_HIGH, UV_VERY_HIGH } from "@/lib/factors";
 import { fmt, WMO_CODES } from "@/lib/format";
-import { NEA_BANDS } from "@/lib/risk";
+import { NEA_BANDS, psiBand } from "@/lib/risk";
 import { fmtDayTime, fmtTime } from "@/lib/time";
-import type { TimelineHour } from "@/lib/types";
+import type { Psi, TimelineHour } from "@/lib/types";
 import { linear, M, niceTicks, timeTicks, TipRow, Tooltip, useWidth } from "./chart-kit";
 import { Card, CardHeader, TextButton } from "./ui";
 
@@ -25,7 +25,8 @@ const PANELS: Panel[] = [
   {
     key: "pm25", title: "PM2.5", unit: "µg/m³", height: 92, digits: 0,
     domain: (v) => [0, Math.max(Math.max(...v) * 1.15, 70)],
-    thresholds: NEA_BANDS.slice(0, 3).map(([top], i) => ({ v: top, label: `NEA Band ${["II", "III", "IV"][i]}` })),
+    // NEA's 1-hour bands, in the same plain words as the other panels
+    thresholds: NEA_BANDS.slice(0, 3).map(([top], i) => ({ v: top, label: ["Elevated", "High", "Very high"][i] })),
   },
   {
     key: "apparentTempC", title: "Feels like", unit: "°C", height: 76, digits: 1,
@@ -47,8 +48,8 @@ const TITLE_H = 22;
 const GAP = 14;
 const AXIS_H = 52;
 
-export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName, label = "Your run" }: {
-  timeline: TimelineHour[]; tz: string; runStart: number; runEnd: number; placeName: string; label?: string;
+export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName, psi, label = "Your run" }: {
+  timeline: TimelineHour[]; tz: string; runStart: number; runEnd: number; placeName: string; psi: Psi | null; label?: string;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -81,7 +82,10 @@ export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName, lab
     <Card>
       <CardHeader
         title={`Forecast at ${placeName}`}
-        subtitle={<>Hourly until {fmtDayTime(t1, tz)}. Labelled lines mark where the risk rules step up.</>}
+        subtitle={<>
+          Hourly until {fmtDayTime(t1, tz)}. Labelled lines mark where the risk rules step up.
+          {psi && <> NEA&apos;s 24-hour PSI for the {psi.region} is {psi.value} now, {psiBand(psi.value)}.</>}
+        </>}
         action={<TextButton onClick={() => setTable((v) => !v)} pressed={table}>{table ? "Chart" : "Table"}</TextButton>}
       />
       {table ? (

@@ -26,6 +26,14 @@ export function vDay(age: number) {
   return V_DAY_TABLE.find(([top]) => age < top)![1];
 }
 
+// NEA's PSI descriptors
+export const PSI_BANDS: [number, string][] = [[50, "good"], [100, "moderate"], [200, "unhealthy"], [300, "very unhealthy"],
+  [Infinity, "hazardous"]];
+
+export function psiBand(psi: number) {
+  return PSI_BANDS.find(([top]) => psi <= top)![1];
+}
+
 export function neaBand(pm: number) {
   return NEA_BANDS.find(([top]) => pm <= top)![1];
 }
@@ -77,6 +85,12 @@ export type PmAssessment = {
 export function runHourSpan(pm: PmSeries, start: number, lastMinute: number): [number, number] {
   const t0 = pm.t[0];
   return [t0 + Math.floor((start - t0) / 3600) * 3600, t0 + Math.ceil((lastMinute - t0) / 3600) * 3600];
+}
+
+// hours spent outdoors besides the session -> the share of the day's other minutes breathed at outdoor PM2.5, spread
+// evenly over the day; indoor time counts as clean air
+export function outdoorShare(outdoorHours: number, sessionMinutes: number) {
+  return Math.min(1, (outdoorHours * 60) / (1440 - sessionMinutes));
 }
 
 export function assess(pm: PmSeries, start: number, minutes: number, veLmin: number, age: number, tz: string,

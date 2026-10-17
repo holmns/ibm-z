@@ -37,15 +37,12 @@ export type ActivityInfo = {
 };
 
 export type ParsedText = {
-  activity: string;
   intensity: Intensity | null;
   minutes: number | null;
   distanceKm: number | null;
   pace: string | null;
   startTime: string | null; // "HH:MM", only when the text names one
   day: "today" | "tomorrow" | null;
-  source: "gemini" | "rules";
-  note: string | null;
 };
 
 export type ActivityLookup = {
@@ -53,6 +50,8 @@ export type ActivityLookup = {
   parsed: ParsedText;
   kind: "run" | "activity" | "not-found";
   match: ActivityInfo | null;
+  similarity: number; // cosine between the text's embedding and the closest activity's
+  note: string | null;
 };
 
 // "run" or "session", for copy that works for both

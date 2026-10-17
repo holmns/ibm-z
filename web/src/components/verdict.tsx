@@ -1,11 +1,44 @@
 "use client";
 
-import { factorReasonText, fmt, pmReasonText } from "@/lib/format";
-import { LEVEL_RANK, neaBand } from "@/lib/risk";
+import { useEffect, useState, type ReactNode } from "react";
+import { HEAT_HOT, HEAT_VERY_HOT, RAIN_ELEVATED, UV_HIGH } from "@/lib/factors";
+import { fmt } from "@/lib/format";
+import { hazeWarning } from "@/lib/haze";
+import { LEVEL_RANK, LEVELS, neaBand, type Level } from "@/lib/risk";
 import { describePlan, isActivityPlan, noun } from "@/lib/session";
 import { fmtDayTime, fmtTime } from "@/lib/time";
-import type { AssessResponse, OptionRow } from "@/lib/types";
+import type { AssessResponse, OptionRow, SummaryFacts } from "@/lib/types";
+import { RangeStrip, ZoneMeter } from "./meters";
 import { Card, StatusIcon, StatusPill } from "./ui";
+
+type FactorKey = "air" | "heat" | "uv" | "rain";
+const FACTOR_NAMES: Record<FactorKey, string> = { air: "air quality", heat: "heat", uv: "UV", rain: "rain" };
+
+export function factorLevels(r: AssessResponse): Record<FactorKey, Level> {
+  const p = r.planned;
+  return { air: p.pmLevel, ...p.factors.parts };
+}
+
+function joinNames(keys: FactorKey[]) {
+  const names = keys.map((k) => FACTOR_NAMES[k]);
+  return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// "Band II Elevated" -> "elevated"
+const neaWord = (pm: number) => neaBand(pm).replace(/^Band [IV]+ /, "").toLowerCase();
+
+export const CAMS_NOTE = "Google's air quality data is unavailable, so PM2.5 comes from the CAMS model, which reads low in haze.";
+
+export function Caution({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-3 flex gap-2 text-[13px] leading-5 text-ink">
+      <span className="mt-0.5"><StatusIcon level="Medium" size={15} /></span>
+      <span>{children}</span>
+    </p>
+  );
+}
 
 function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   const planned = r.planned;
@@ -26,11 +59,13 @@ function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   if (r.skip.level === "High") {
     return { text: `Even without the ${n}, today's air scores High. Train indoors or pick another day.` };
   }
-  // name what holds the level up: shortening only helps when PM2.5 is the reason
-  if (LEVEL_RANK[planned.factors.level] >= LEVEL_RANK[planned.pmLevel]) {
-    const kinds = planned.factors.reasons.map((x) => x.kind);
-    const what = kinds.includes("heat") ? "Heat" : kinds.includes("uv") ? "UV" : "Rain";
-    return { text: `${what} keeps every start in the forecast at ${planned.level} or above. A shaded or indoor venue helps more than a new time.` };
+  const levels = factorLevels(r);
+  const holding = (["heat", "uv", "rain"] as const).filter((k) => levels[k] === planned.level);
+  if (holding.length) {
+    return {
+      text: `${cap(joinNames(holding))} keeps every start in the forecast at ${planned.level} or above. ` +
+        "A shaded or indoor venue helps more than a new time.",
+    };
   }
   return {
     text: `No start in the forecast scores lower than ${planned.level}. ` +
@@ -38,15 +73,94 @@ function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   };
 }
 
+function summaryFacts(r: AssessResponse, drivers: FactorKey[], suggestionText: string, caveat: string | null): SummaryFacts {
+  const p = r.planned;
+  const f = p.factors;
+  const levels = factorLevels(r);
+  const [lowCut, highCut] = LEVELS[r.group].map(([top]) => top);
+  const neaHit = p.pmReasons.find((x) => x.kind === "nea-hour");
+  return {
+    level: p.level, raisedBy: p.level === "Low" ? [] : drivers.map((k) => FACTOR_NAMES[k]), activity: noun(r.plan),
+    plan: describePlan(r.plan, r.activity), place: r.place.name,
+    when: `${fmtDayTime(p.start, r.timezone)} to ${fmtTime(p.end, r.timezone)}`, thresholds: r.group,
+    air: {
+      level: levels.air, dayPm25: `${fmt(p.cEq)} µg/m³`, lowBelow: `${fmt(lowCut, lowCut % 1 ? 1 : 0)} µg/m³`,
+      highFrom: `${fmt(highCut)} µg/m³`, sessionAvgPm25: `${fmt(p.runPmMean)} µg/m³`,
+      neaRating: neaWord(neaHit?.kind === "nea-hour" ? neaHit.pm : p.runPmMaxHour), oneHourMakesItHigh: Boolean(neaHit),
+    },
+    heat: { level: levels.heat, feelsLike: f.apparentTempC === null ? null : `${fmt(f.apparentTempC, 1)}°C` },
+    uv: { level: levels.uv, index: f.uvIndex === null ? null : fmt(f.uvIndex, f.uvIndex % 1 ? 1 : 0) },
+    rain: {
+      level: levels.rain, chanceOfRain: f.precipProbPct === null ? null : `${fmt(f.precipProbPct)}%`,
+      thunderstormForecast: f.thunderstorm,
+    },
+    dose: { duringSession: `${fmt(p.runUg)} µg`, addedToDay: `${fmt(p.runUg + p.restUg - r.skip.ug)} µg` },
+    suggestion: suggestionText, forecastCaveat: caveat,
+  };
+}
+
+// a language model's read of the facts on the card, in place of the plain "Raised by" line; a placeholder of the
+// same two lines holds the space while it's written, and the plain line comes back if it fails
+function Summary({ facts, fallback }: { facts: SummaryFacts; fallback: string }) {
+  const body = JSON.stringify({ facts });
+  const [done, setDone] = useState<{ body: string; text: string | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/summary", { method: "POST", headers: { "content-type": "application/json" }, body })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((b) => live && setDone({ body, text: typeof b?.summary === "string" ? b.summary : null }))
+      .catch(() => live && setDone({ body, text: null }));
+    return () => {
+      live = false;
+    };
+  }, [body]);
+  if (done?.body !== body) {
+    return (
+      <div className="mt-3 max-w-[66ch]" aria-busy="true" aria-label="Writing a summary">
+        {["w-full", "w-3/5"].map((w) => (
+          <div key={w} className="flex h-6 items-center"><div className={`h-3.5 ${w} animate-pulse rounded bg-surface-2`} /></div>
+        ))}
+      </div>
+    );
+  }
+  return done.text
+    ? <p className="mt-3 max-w-[66ch] text-[15px] leading-6 text-ink">{done.text}</p>
+    : <p className="mt-3 text-sm leading-5 text-ink">{fallback}</p>;
+}
+
+function FactorCell({ title, level, value, unit, caption, meter, children }: {
+  title: string; level: Level; value: string; unit: string; caption: string; meter: ReactNode; children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3 bg-surface px-5 py-4 sm:px-6">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[13px] font-semibold text-ink">{title}</h2>
+        <StatusPill level={level} size="sm" />
+      </div>
+      <div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-[26px] leading-8 font-semibold tracking-[-0.01em] text-ink">{value}</span>
+          {unit && <span className="text-sm text-ink-2">{unit}</span>}
+        </div>
+        <div className="text-xs text-ink-2">{caption}</div>
+      </div>
+      {meter}
+      <p className="text-[13px] leading-5 text-ink-2">{children}</p>
+    </div>
+  );
+}
+
 export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: OptionRow) => void }) {
   const p = r.planned;
   const f = p.factors;
   const s = suggestion(r);
-  const factorValues = [
-    f.apparentTempC !== null && `feels like ${fmt(f.apparentTempC, 1)}°C`,
-    f.uvIndex !== null && `UV ${fmt(f.uvIndex, 1)}`,
-    f.precipProbPct !== null && `${fmt(f.precipProbPct)}% chance of rain`,
-  ].filter(Boolean).join(", ");
+  const n = noun(r.plan);
+  const levels = factorLevels(r);
+  const drivers = (Object.keys(levels) as FactorKey[]).filter((k) => levels[k] === p.level);
+  const [lowCut, highCut] = LEVELS[r.group].map(([top]) => top);
+  const neaHit = p.pmReasons.find((x) => x.kind === "nea-hour");
+  const pmMax = Math.max(highCut * 4 / 3, r.band.p90.cEq * 1.1, p.cEq * 1.1);
+  const haze = hazeWarning(r, p.start);
 
   return (
     <Card className="overflow-hidden">
@@ -55,40 +169,68 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
           <StatusIcon level={p.level} size={34} />
           <h1 className="text-[34px] leading-none font-semibold tracking-[-0.02em] text-ink">{p.level} risk</h1>
         </div>
-        <p className="mt-3 text-sm leading-5 text-ink-2">
+        <Summary facts={summaryFacts(r, drivers, s.text, haze)}
+          fallback={p.level === "Low" ? "Nothing in the forecast raises it." : `Raised by ${joinNames(drivers)}.`} />
+        <p className="mt-1 text-sm leading-5 text-ink-2">
           {r.place.name}, {fmtDayTime(p.start, r.timezone)} to {fmtTime(p.end, r.timezone)}.{" "}
           {describePlan(r.plan, r.activity)}
-          {r.group === "vulnerable" ? ", vulnerable thresholds." : "."}
+          {r.group === "vulnerable" ? ", with the stricter levels for vulnerable groups." : "."}
         </p>
+        {r.pmSource === "cams" && <Caution>{CAMS_NOTE}</Caution>}
+        {haze && <Caution>{haze}</Caution>}
       </div>
-      <div className="grid border-t border-line md:grid-cols-2">
-        <div className="px-5 py-4 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[13px] font-semibold text-ink">PM2.5 breathed in</h2>
-            <StatusPill level={p.pmLevel} size="sm" />
-          </div>
-          <ul className="mt-2 space-y-1 text-sm leading-5 text-ink">
-            {p.pmReasons.map((x, i) => <li key={i}>{pmReasonText(x)}</li>)}
-          </ul>
-          <p className="mt-2 text-xs leading-[18px] text-ink-2">
-            Air during the run averages {fmt(p.runPmMean)} µg/m³, worst hour {fmt(p.runPmMaxHour)}, NEA{" "}
-            {neaBand(p.runPmMaxHour)}. The day averages {fmt(p.dayPmMean)}.
-          </p>
-        </div>
-        <div className="border-t border-line px-5 py-4 sm:px-6 md:border-t-0 md:border-l">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[13px] font-semibold text-ink">Heat, UV and rain</h2>
-            <StatusPill level={f.level} size="sm" />
-          </div>
-          <ul className="mt-2 space-y-1 text-sm leading-5 text-ink">
-            {f.reasons.length ? f.reasons.map((x, i) => <li key={i}>{factorReasonText(x)}</li>)
-              : <li>Nothing here raises the level.</li>}
-          </ul>
-          <p className="mt-2 text-xs leading-[18px] text-ink-2">
-            Worst hour of the {noun(r.plan)}{factorValues ? `, ${factorValues}` : ""}.
-          </p>
-        </div>
+
+      {/* hairlines between cells at every breakpoint: the grid's 1px gaps show its border-coloured background */}
+      <div className="grid gap-px border-t border-line bg-[var(--border)] sm:grid-cols-2 xl:grid-cols-4">
+        <FactorCell title="Air quality" level={levels.air} value={fmt(p.cEq)} unit="µg/m³" caption={`Your day's PM2.5, ${n} included`}
+          meter={<ZoneMeter label={`Your day's PM2.5 ${fmt(p.cEq)} µg/m³`} domain={[0, pmMax]} value={p.cEq}
+            band={[r.band.p10.cEq, r.band.p90.cEq]}
+            zones={[{ to: lowCut, level: "Low" }, { to: highCut, level: "Medium" }, { to: Infinity, level: "High" }]}
+            ticks={[{ v: lowCut, label: fmt(lowCut, lowCut % 1 ? 1 : 0) }, { v: highCut, label: fmt(highCut) }]} />}>
+          {neaHit && neaHit.kind === "nea-hour"
+            ? `One hour of the ${n} reaches ${fmt(neaHit.pm)} µg/m³, which NEA rates ${neaWord(neaHit.pm)}. That alone makes it High.`
+            : `Air during the ${n} averages ${fmt(p.runPmMean)} µg/m³, which NEA rates ${neaWord(p.runPmMaxHour)}.`}
+        </FactorCell>
+
+        <FactorCell title="Heat" level={levels.heat} value={fmt(f.apparentTempC, 1)} unit="°C" caption="Feels like, at its hottest"
+          meter={f.apparentTempC !== null && (
+            <ZoneMeter label={`Feels like ${fmt(f.apparentTempC, 1)}°C`} domain={[26, 40]} value={f.apparentTempC}
+              zones={[{ to: HEAT_HOT, level: "Low" }, { to: HEAT_VERY_HOT, level: "Medium" }, { to: Infinity, level: "High" }]}
+              ticks={[{ v: HEAT_HOT, label: `${HEAT_HOT}°` }, { v: HEAT_VERY_HOT, label: `${HEAT_VERY_HOT}°` }]} />
+          )}>
+          {f.apparentTempC === null ? "No forecast for these hours."
+            : levels.heat === "High" ? "Very hot for hard exercise. Heat strain comes on fast."
+              : levels.heat === "Medium" ? "Hot. Expect to slow down and sweat more than usual."
+                : `Under ${HEAT_HOT}°C, where heat starts to count.`}
+        </FactorCell>
+
+        <FactorCell title="UV" level={levels.uv} value={fmt(f.uvIndex, f.uvIndex !== null && f.uvIndex % 1 ? 1 : 0)} unit=""
+          caption="UV index, at its highest"
+          meter={f.uvIndex !== null && (
+            <ZoneMeter label={`UV index ${fmt(f.uvIndex, 1)}`} domain={[0, 12]} value={f.uvIndex}
+              zones={[{ to: UV_HIGH, level: "Low" }, { to: Infinity, level: f.combo ? "High" : "Medium" }]}
+              ticks={[{ v: UV_HIGH, label: String(UV_HIGH) }]} />
+          )}>
+          {f.uvIndex === null ? "No forecast for these hours."
+            : f.combo ? "Strong sun with rain likely too. Together they make it High."
+              : f.uvIndex < 1 ? `The sun is down or weak for the whole ${n}.`
+                : f.uvIndex < UV_HIGH ? "Moderate sun." : "Strong sun. Cover up and use sunscreen."}
+        </FactorCell>
+
+        <FactorCell title="Rain" level={levels.rain} value={fmt(f.precipProbPct)} unit="%" caption="Chance of rain, at its highest"
+          meter={f.precipProbPct !== null && (
+            <ZoneMeter label={`${fmt(f.precipProbPct)}% chance of rain`} domain={[0, 100]} value={f.precipProbPct}
+              zones={[{ to: RAIN_ELEVATED, level: "Low" }, { to: Infinity, level: f.combo ? "High" : "Medium" }]}
+              ticks={[{ v: RAIN_ELEVATED, label: `${RAIN_ELEVATED}%` }]} />
+          )}>
+          {f.precipProbPct === null ? "No forecast for these hours."
+            : f.combo ? "Rain likely while the sun is strong. Together they make it High."
+              : f.precipProbPct >= 70 ? "Rain is very likely." : f.precipProbPct >= RAIN_ELEVATED ? "Rain is likely."
+                : "Rain is unlikely."}
+          {f.thunderstorm && " A thunderstorm is forecast, so check NEA lightning alerts."}
+        </FactorCell>
       </div>
+
       <div className="flex flex-col gap-3 border-t border-line bg-surface-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p className="text-sm leading-5 text-ink">{s.text}</p>
         {s.option && (
@@ -105,48 +247,81 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
   );
 }
 
-function Tile({ label, value, unit, children }: { label: string; value: string; unit: string; children: React.ReactNode }) {
+function Swatch({ color, opacity = 1 }: { color: string; opacity?: number }) {
+  return <span className="inline-block size-2.5 shrink-0 rounded-[2px]" style={{ background: color, opacity }} />;
+}
+
+function DayBar({ label, parts, total, max }: {
+  label: string; parts: { v: number; color: string; opacity?: number }[]; total: number; max: number;
+}) {
+  const shown = parts.filter((x) => x.v > 0);
   return (
-    <div className="rounded-xl border border-line bg-surface px-4 py-3.5 shadow-[var(--shadow)]">
-      <div className="text-[13px] text-ink-2">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-[26px] leading-8 font-semibold tracking-[-0.01em] text-ink">{value}</span>
-        <span className="text-sm text-ink-2">{unit}</span>
+    <>
+      <span className="text-[13px] text-ink-2">{label}</span>
+      <div className="flex h-4 gap-0.5" role="img" aria-label={`${label}, ${fmt(total)} µg`}>
+        {shown.map((x, i) => (
+          <div key={i} className={`h-full ${i === shown.length - 1 ? "rounded-r" : ""}`}
+            style={{ width: `${(x.v / max) * 100}%`, minWidth: 2, background: x.color, opacity: x.opacity ?? 1 }} />
+        ))}
       </div>
-      <div className="mt-1 space-y-0.5 text-xs leading-[18px] text-ink-2">{children}</div>
-    </div>
+      <span className="text-right text-sm font-semibold text-ink tnum">{fmt(total)} µg</span>
+    </>
   );
 }
 
-export function StatTiles({ r }: { r: AssessResponse }) {
+export function DoseCard({ r }: { r: AssessResponse }) {
   const p = r.planned;
-  const v = p.ve;
-  const vulnerable = r.group === "vulnerable";
   const n = noun(r.plan);
+  const activity = isActivityPlan(r.plan);
+  const minutes = Math.round(p.ve.minutes);
+  const restingLmin = (p.vDayM3 / 1440) * 1000;
+  const withRun = p.runUg + p.restUg;
+  const atRest = Math.max(0, r.skip.ugInRunSlot);
+  const max = Math.max(withRun, r.skip.ug, 1);
+  const REST = "var(--muted)";
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      <Tile label={`Inhaled during the ${n}`} value={fmt(p.runUg)} unit="µg">
-        <div className="tnum">80% range {fmt(r.band.p10.runUg)} to {fmt(r.band.p90.runUg)}</div>
-        <div>{fmt(p.runShareOfDay * 100)}% of the day&apos;s dose</div>
-      </Tile>
-      <Tile label="Day-equivalent PM2.5" value={fmt(p.cEq, 1)} unit="µg/m³">
-        <div className="tnum">80% range {fmt(r.band.p10.cEq, 1)} to {fmt(r.band.p90.cEq, 1)}</div>
-        <div>{fmt(p.hq, 1)} times the WHO daily guideline</div>
-      </Tile>
-      <Tile label={`If you skip the ${n}`} value={fmt(r.skip.ug)} unit="µg">
-        <div className="flex items-center gap-1.5"><StatusIcon level={r.skip.level} size={12} />{r.skip.level} from the day&apos;s air alone</div>
-        {/* skipping still breathes through the run's hour at the ordinary rate, so this is less than the run's own dose */}
-        <div>The {n} adds {fmt(p.runUg + p.restUg - r.skip.ug)} µg to the day</div>
-      </Tile>
-      <Tile label={`Breathing during the ${n}`} value={fmt(p.veUsed, 1)} unit="L/min">
-        <div className="tnum">
-          {vulnerable ? "Top of the 80% range, " : "80% range "}
-          {fmt(v.veP10, 1)} to {fmt(v.veP90, 1)}
+    <Card>
+      <div className="px-5 pt-4 pb-1 sm:px-6">
+        <h2 className="text-[15px] font-semibold leading-6 text-ink">PM2.5 you breathe in</h2>
+      </div>
+      <div className="grid gap-x-10 gap-y-6 px-5 pt-3 pb-5 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)]">
+        <div>
+          <div className="text-[13px] text-ink-2">During the {n}</div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-[30px] leading-9 font-semibold tracking-[-0.01em] text-ink">{fmt(p.runUg)}</span>
+            <span className="text-sm text-ink-2">µg</span>
+          </div>
+          <div className="mt-2 max-w-80">
+            <RangeStrip lo={r.band.p10.runUg} hi={r.band.p90.runUg} value={p.runUg} unit=" µg"
+              label={`Likely between ${fmt(r.band.p10.runUg)} and ${fmt(r.band.p90.runUg)} µg`} />
+          </div>
+          <p className="mt-3 text-[13px] leading-5 text-ink-2">
+            You breathe {fmt(p.veUsed)} litres a minute {activity ? "during the session" : "while running"}, about {fmt(p.veUsed / restingLmin)} times your
+            average over a day{r.group === "vulnerable" ? ". Vulnerable settings take the high end of the likely range" : ""}.
+          </p>
         </div>
         <div>
-          {fmt((p.veUsed * v.minutes) / 1000, 2)} m³ of air, {v.variant === "MET" ? `${fmt(v.met, 1)} MET` : `model ${v.variant}`}
+          <div className="text-[13px] text-ink-2">Your whole day</div>
+          <div className="mt-2.5 grid grid-cols-[6.5rem_minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-2.5">
+            <DayBar label={`With the ${n}`} total={withRun} max={max}
+              parts={[{ v: p.restUg, color: REST }, { v: p.runUg, color: "var(--accent)" }]} />
+            <DayBar label="If you skip it" total={r.skip.ug} max={max}
+              parts={[{ v: p.restUg, color: REST }, { v: atRest, color: "var(--accent)", opacity: 0.35 }]} />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2 tnum">
+            <span className="inline-flex items-center gap-1.5"><Swatch color={REST} />Rest of the day, {fmt(p.restUg)} µg</span>
+            <span className="inline-flex items-center gap-1.5"><Swatch color="var(--accent)" />Your {n}, {fmt(p.runUg)} µg</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Swatch color="var(--accent)" opacity={0.35} />Same {minutes} min at rest, {fmt(atRest)} µg
+            </span>
+          </div>
+          <p className="mt-3 text-[13px] leading-5 text-ink-2">
+            The {n} adds <span className="font-semibold text-ink">{fmt(withRun - r.skip.ug)} µg</span> to your day. That&apos;s
+            the {fmt(p.runUg)} µg you breathe {activity ? "in the session" : "running"}, less the {fmt(atRest)} µg you&apos;d breathe anyway sitting out
+            those {minutes} minutes.
+          </p>
         </div>
-      </Tile>
-    </div>
+      </div>
+    </Card>
   );
 }
