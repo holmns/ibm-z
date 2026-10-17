@@ -1,0 +1,303 @@
+[
+ {
+  "plan": {
+   "pace": "6:00",
+   "distance_km": 10.0
+  },
+  "person": {
+   "age": 30,
+   "sex": "male",
+   "height_cm": 175,
+   "weight_kg": 70
+  },
+  "history": null,
+  "out": {
+   "variant": "A",
+   "speed_kmh": 10.0,
+   "minutes": 60.0,
+   "ve_lmin": 64.63783224742471,
+   "ve_p10": 51.7844810504209,
+   "ve_p90": 77.11075833420338,
+   "air_m3": 3.8782699348454828,
+   "air_p10_m3": 3.107068863025254,
+   "air_p90_m3": 4.626645500052203,
+   "notes": [],
+   "warnings": []
+  }
+ },
+ {
+  "plan": {
+   "pace": "6:00",
+   "distance_km": 10.0
+  },
+  "person": {
+   "age": 30,
+   "sex": "male",
+   "height_cm": 175,
+   "weight_kg": 70
+  },
+  "history": {
+   "runs": [
+    {
+     "distance_km": 8.0,
+     "time": "52:00",
+     "avg_hr": 148
+    },
+    {
+     "distance_km": 5.0,
+     "time": "30:00",
+     "avg_hr": 155
+    },
+    {
+     "distance_km": 10.0,
+     "time": "58:00",
+     "avg_hr": 160
+    }
+   ]
+  },
+  "out": {
+   "variant": "C",
+   "speed_kmh": 10.0,
+   "minutes": 60.0,
+   "ve_lmin": 64.8273408172774,
+   "ve_p10": 53.768978790083786,
+   "ve_p90": 75.7153917272088,
+   "air_m3": 3.889640449036644,
+   "air_p10_m3": 3.226138727405027,
+   "air_p90_m3": 4.542923503632528,
+   "notes": [
+    "HR at pace 156 bpm (HR-speed line over 3 runs, 10.5 bpm per km/h; lab median at this pace 154)"
+   ],
+   "warnings": []
+  }
+ },
+ {
+  "plan": {
+   "pace": "6:00",
+   "distance_km": 10.0
+  },
+  "person": {
+   "age": 30,
+   "sex": "male",
+   "height_cm": 175,
+   "weight_kg": 70
+  },
+  "history": {
+   "best_effort": {
+    "distance_km": 5.0,
+    "time": "25:00"
+   },
+   "runs": [
+    {
+     "distance_km": 8.0,
+     "time": "52:00",
+     "avg_hr": 148
+    },
+    {
+     "distance_km": 5.0,
+     "time": "30:00",
+     "avg_hr": 155
+    },
+    {
+     "distance_km": 10.0,
+     "time": "58:00",
+     "avg_hr": 160
+    }
+   ]
+  },
+  "out": {
+   "variant": "B",
+   "speed_kmh": 10.0,
+   "minutes": 60.0,
+   "ve_lmin": 72.55617540736799,
+   "ve_p10": 60.30157632325391,
+   "ve_p90": 84.44392373592669,
+   "air_m3": 4.353370524442079,
+   "air_p10_m3": 3.6180945793952346,
+   "air_p90_m3": 5.066635424155601,
+   "notes": [
+    "peak speed 13.7 km/h from best effort 5 km in 25:00 (lab median 16.7)",
+    "HR at pace 156 bpm (HR-speed line over 3 runs, 10.5 bpm per km/h; lab median at this pace 154)"
+   ],
+   "warnings": []
+  }
+ },
+ {
+  "plan": {
+   "pace": "4:30",
+   "distance_km": 21.1
+  },
+  "person": {
+   "age": 45,
+   "sex": "female",
+   "height_cm": 162,
+   "weight_kg": 55
+  },
+  "history": {
+   "best_effort": {
+    "distance_km": 10,
+    "time": "48:30"
+   }
+  },
+  "out": {
+   "variant": "B",
+   "speed_kmh": 13.333333333333334,
+   "minutes": 94.95,
+   "ve_lmin": 81.23763069588723,
+   "ve_p10": 67.51675043818388,
+   "ve_p90": 94.5477659545193,
+   "air_m3": 7.713513034574492,
+   "air_p10_m3": 6.41071545410556,
+   "air_p90_m3": 8.97731037738161,
+   "notes": [
+    "peak speed 14.7 km/h from best effort 10 km in 48:30 (lab median 16.7)"
+   ],
+   "warnings": [
+    "goal pace is faster than the best effort predicts for 21.1 km (5:04 min/km); VE will be higher than estimated"
+   ]
+  }
+ },
+ {
+  "plan": {
+   "pace": "13:00",
+   "distance_km": 3
+  },
+  "person": {
+   "age": 70,
+   "sex": "female",
+   "height_cm": 155,
+   "weight_kg": 60
+  },
+  "history": null,
+  "out": {
+   "variant": "A",
+   "speed_kmh": 4.615384615384615,
+   "minutes": 39.0,
+   "ve_lmin": 25.367541499207103,
+   "ve_p10": 20.32315946229453,
+   "ve_p90": 30.262623204789932,
+   "air_m3": 0.989334118469077,
+   "air_p10_m3": 0.7926032190294867,
+   "air_p90_m3": 1.1802423049868074,
+   "notes": [],
+   "warnings": [
+    "speed km/h 4.615 outside the data (4.9-18.9)",
+    "age 70 outside the data (10.8-63)"
+   ]
+  }
+ },
+ {
+  "plan": {
+   "pace": "5:20",
+   "distance_km": 8
+  },
+  "person": {
+   "age": 22,
+   "sex": "male",
+   "height_cm": 182,
+   "weight_kg": 78
+  },
+  "history": {
+   "runs": [
+    {
+     "distance_km": 6,
+     "time": "33:00",
+     "avg_hr": 162
+    }
+   ]
+  },
+  "out": {
+   "variant": "C",
+   "speed_kmh": 11.25,
+   "minutes": 42.666666666666664,
+   "ve_lmin": 74.47272054903361,
+   "ve_p10": 61.76903265132258,
+   "ve_p90": 86.98075747475717,
+   "air_m3": 3.1775027434254337,
+   "air_p10_m3": 2.63547872645643,
+   "air_p90_m3": 3.711178985589639,
+   "notes": [
+    "HR at pace 162 bpm (mean HR of runs at 10.9 km/h; lab median at this pace 162)"
+   ],
+   "warnings": []
+  }
+ },
+ {
+  "plan": {
+   "pace": "7:30",
+   "distance_km": 5
+  },
+  "person": {
+   "age": 35,
+   "sex": "male",
+   "height_cm": 170,
+   "weight_kg": 90
+  },
+  "history": {
+   "runs": [
+    {
+     "distance_km": 6,
+     "time": "33:00",
+     "avg_hr": 162
+    }
+   ]
+  },
+  "out": {
+   "variant": "A",
+   "speed_kmh": 8.0,
+   "minutes": 37.5,
+   "ve_lmin": 57.536399463733915,
+   "ve_p10": 46.09518116780416,
+   "ve_p90": 68.63898803854053,
+   "air_m3": 2.1576149798900217,
+   "air_p10_m3": 1.7285692937926558,
+   "air_p90_m3": 2.57396205144527,
+   "notes": [],
+   "warnings": [
+    "HR not used: goal speed 8.0 km/h outside run history (10.9-10.9 km/h)"
+   ]
+  }
+ },
+ {
+  "plan": {
+   "pace": "3:40",
+   "distance_km": 10
+  },
+  "person": {
+   "age": 28,
+   "sex": "male",
+   "height_cm": 178,
+   "weight_kg": 64
+  },
+  "history": {
+   "best_effort": {
+    "distance_km": 5,
+    "time": "17:30"
+   },
+   "runs": [
+    {
+     "distance_km": 12,
+     "time": "50:00",
+     "avg_hr": 150
+    }
+   ]
+  },
+  "out": {
+   "variant": "B",
+   "speed_kmh": 16.363636363636363,
+   "minutes": 36.666666666666664,
+   "ve_lmin": 103.41931933029485,
+   "ve_p10": 85.95199433929163,
+   "ve_p90": 120.36374664618869,
+   "air_m3": 3.792041708777478,
+   "air_p10_m3": 3.1515731257740263,
+   "air_p90_m3": 4.413337377026918,
+   "notes": [
+    "peak speed 19.6 km/h from best effort 5 km in 17:30 (lab median 16.7)"
+   ],
+   "warnings": [
+    "HR not used: goal speed 16.4 km/h outside run history (14.4-14.4 km/h)"
+   ]
+  }
+ }
+]
