@@ -12,7 +12,7 @@ import { RangeStrip, ZoneMeter } from "./meters";
 import { Card, StatusIcon, StatusPill } from "./ui";
 
 type FactorKey = "air" | "heat" | "uv" | "rain";
-const FACTOR_NAMES: Record<FactorKey, string> = { air: "air quality", heat: "heat", uv: "UV", rain: "rain" };
+const FACTOR_NAMES: Record<FactorKey, string> = { air: "personal air quality", heat: "heat", uv: "UV", rain: "rain" };
 
 export function factorLevels(r: AssessResponse): Record<FactorKey, Level> {
   const p = r.planned;
@@ -132,7 +132,8 @@ function FactorCell({ title, level, value, unit, caption, meter, children }: {
 }) {
   return (
     <div className="flex flex-col gap-3 bg-surface px-5 py-4 sm:px-6">
-      <div className="flex items-center justify-between gap-2">
+      {/* four across, "Personal air quality" takes two lines, so every header does and the values line up */}
+      <div className="flex items-center justify-between gap-2 xl:min-h-10">
         <h2 className="text-[13px] font-semibold text-ink">{title}</h2>
         <StatusPill level={level} size="sm" />
       </div>
@@ -180,7 +181,7 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
 
       {/* hairlines between cells at every breakpoint: the grid's 1px gaps show its border-coloured background */}
       <div className="grid gap-px border-t border-line bg-[var(--border)] sm:grid-cols-2 xl:grid-cols-4">
-        <FactorCell title="Air quality" level={levels.air} value={fmt(p.cEq)} unit="µg/m³" caption={`Your day's PM2.5, ${n} included`}
+        <FactorCell title="Personal air quality" level={levels.air} value={fmt(p.cEq)} unit="µg/m³" caption={`Your day's PM2.5, ${n} included`}
           meter={<ZoneMeter label={`Your day's PM2.5 ${fmt(p.cEq)} µg/m³`} domain={[0, pmMax]} value={p.cEq}
             band={[r.band.p10.cEq, r.band.p90.cEq]}
             zones={[{ to: lowCut, level: "Low" }, { to: highCut, level: "Medium" }, { to: Infinity, level: "High" }]}

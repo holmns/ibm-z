@@ -66,7 +66,7 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                   <td className="px-4 py-1.5 whitespace-nowrap">{fmtDayTime(s.start, tz)}</td>
                   <td className="px-4 py-1.5 text-right">{fmt(s.runUg)}</td>
                   <td className="px-4 py-1.5 text-right">{fmt(s.cEq, 1)}</td>
-                  <td className="px-2 py-1.5 text-center"><LevelMark name="Air" level={s.pmLevel} /></td>
+                  <td className="px-2 py-1.5 text-center"><LevelMark name="Personal air quality" level={s.pmLevel} /></td>
                   <td className="px-2 py-1.5 text-center"><LevelMark name="Heat" level={s.parts.heat} /></td>
                   <td className="px-2 py-1.5 text-center"><LevelMark name="UV" level={s.parts.uv} /></td>
                   <td className="px-2 py-1.5 text-center"><LevelMark name="Rain" level={s.parts.rain} /></td>

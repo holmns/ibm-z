@@ -3,7 +3,7 @@ import { summarize, SUMMARY_MODEL, tidy } from "../summary";
 import type { SummaryFacts } from "../types";
 
 const facts = (place: string): SummaryFacts => ({
-  level: "Medium", raisedBy: ["air quality"], activity: "run", plan: "10 km at 6:00 per km", place,
+  level: "Medium", raisedBy: ["personal air quality"], activity: "run", plan: "10 km at 6:00 per km", place,
   when: "Sun 18 Oct 20:00 to 21:00", thresholds: "general",
   air: { level: "Medium", dayPm25: "44 µg/m³", lowBelow: "37.5 µg/m³", highFrom: "75 µg/m³", sessionAvgPm25: "36 µg/m³",
     neaRating: "normal" },

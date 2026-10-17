@@ -47,7 +47,7 @@ export function OptionsTable({ r, onApply }: { r: AssessResponse; onApply: (o: O
                   {o.kind === "planned" ? "" : `${o.vsPlannedUg > 0 ? "+" : o.vsPlannedUg < 0 ? "−" : ""}${fmt(Math.abs(o.vsPlannedUg))}`}
                 </td>
                 <td className="px-2.5 py-2 text-right text-ink">{fmt(o.cEq, 1)} <span className="text-ink-2">µg/m³</span></td>
-                <td className="px-2 py-2 text-center"><LevelMark name="Air" level={o.pmLevel} /></td>
+                <td className="px-2 py-2 text-center"><LevelMark name="Personal air quality" level={o.pmLevel} /></td>
                 <td className="px-2 py-2 text-center"><LevelMark name="Heat" level={o.parts?.heat ?? null} /></td>
                 <td className="px-2 py-2 text-center"><LevelMark name="UV" level={o.parts?.uv ?? null} /></td>
                 <td className="px-2 py-2 text-center"><LevelMark name="Rain" level={o.parts?.rain ?? null} /></td>

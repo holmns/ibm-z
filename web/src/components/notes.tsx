@@ -59,7 +59,7 @@ export function Notes({ r }: { r: AssessResponse }) {
       <CardHeader title="How this is worked out" />
       <div className="grid gap-x-8 gap-y-5 border-t border-line px-5 py-4 text-[13px] leading-5 text-ink-2 lg:grid-cols-2">
         <div className="space-y-2">
-          <h3 className="font-semibold text-ink">Air quality</h3>
+          <h3 className="font-semibold text-ink">Personal air quality</h3>
           <p>
             {activity
               ? "The activity's MET from the 2024 Compendium of Physical Activities and your weight give your oxygen use. A model fitted on 981 treadmill tests turns that and your profile into the air you breathe each minute."
