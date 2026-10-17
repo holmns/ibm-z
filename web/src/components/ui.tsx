@@ -47,6 +47,14 @@ export function LevelMark({ level, name }: { level: Level | null; name: string }
   );
 }
 
+export function IndoorIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden className="shrink-0">
+      <path d="M2 7.5L8 2.5l6 5M3.5 6.5V13.5h9V6.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export const FACTOR_COLUMNS = ["Air", "Heat", "UV", "Rain"] as const;
 
 export function LevelLegend() {

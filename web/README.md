@@ -35,6 +35,7 @@ comes with a note to check it. `ONEMAP_TOKEN` is optional. OneMap search answers
 | Hourly PM2.5 from Google's Air Quality API, CAMS as fallback; NEA's PSI | (app only) | `src/lib/googleaq.ts`, `src/lib/conditions.ts`, `src/lib/nea.ts` |
 | PM2.5 dose, day-equivalent PM2.5, risk level, alternatives | `assess-risk.ipynb` | `src/lib/risk.ts`, `src/lib/plan.ts` |
 | Heat, UV and rain rules, venue search, nearby venues | `detect.ipynb` | `src/lib/factors.ts`, `src/lib/onemap.ts`, `src/lib/venues.ts` |
+| PM2.5 heat map under the nearby venues | (app only) | `src/lib/airmap.ts`, `src/lib/aqtiles.ts`, `src/components/air-map.tsx` |
 
 The overall level is the worse of the PM2.5 level and the heat, UV and rain level.
 
@@ -60,6 +61,12 @@ when it runs. The golden files in `src/lib/__tests__` come from the notebooks' o
   dose alone, which can land on a noon start with UV 11.
 - NParks venues are limited to fitness areas, multipurpose courts and shelters. The nearest features of any class are
   car parks and notice boards. NParks venues are never counted as indoor.
+- The nearby-venues card has a Google Map with Google's PM2.5 heat map for the current hour and a pin per venue at its
+  level for your start time. Google's terms require their Air Quality tiles on a Google Map, which needs a browser key
+  (`NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`); without one the card shows the list only. Google publishes no scale for the
+  PM2.5 palette, so the legend's colours are tile pixels read where `currentConditions` gave the PM2.5, from 4 µg/m³
+  (Sydney) to 311 (Palangka Raya) on 17 Oct 2026. The tiles have faint seams where Google renders neighbouring tiles
+  apart.
 - The indoor guess drops "swimming" and "pool", since ActiveSG pools are outdoor, and adds "sport centre".
 
 ## API
@@ -77,3 +84,6 @@ when it runs. The golden files in `src/lib/__tests__` come from the notebooks' o
 - `GET /api/places?q=` searches OneMap.
 - `POST /api/venues` scores the planned run at nearby ActiveSG and NParks venues. The data.gov.sg files are cached in
   `.cache/` after the first download.
+- `GET /api/aq-tiles/{z}/{x}/{y}` returns one of Google's PM2.5 heatmap tiles (`PM25_INDIGO_PERSIAN`, the current
+  hour) as a PNG. It serves only zooms 10 to 12 over Singapore, Johor's south and Batam (177 tiles), and keeps each
+  until the clock hour turns, which is as long as Google allows. Closer in, the map enlarges the zoom-12 tile.

@@ -1,19 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { fmt } from "@/lib/format";
-import type { Venue } from "@/lib/types";
-import { Card, CardHeader, Spinner, StatusIcon, StatusPill } from "./ui";
+import type { Place, Venue } from "@/lib/types";
+import { AirMap, MAP_ENABLED, venueId } from "./air-map";
+import { Card, CardHeader, IndoorIcon, Spinner, StatusIcon, StatusPill } from "./ui";
 
 export type VenuesState = { status: "loading" } | { status: "error"; message: string } |
   { status: "done"; venues: Venue[]; preferIndoor: boolean };
 
-export function Venues({ state }: { state: VenuesState }) {
+export function Venues({ state, place }: { state: VenuesState; place: Place }) {
+  // the venue under the pointer, on the map or in the list, so the other one can point to it too
+  const [active, setActive] = useState<string | null>(null);
   const subtitle = state.status === "done" && state.preferIndoor
     ? "Indoor venues first, since the plan scores Medium or worse or rain is likely. Indoor is a guess from the venue name, so check with the operator."
     : "The nearest ActiveSG venues and park facilities within 12 km.";
   return (
     <Card>
       <CardHeader title="Nearby alternatives" subtitle={subtitle} />
+      {MAP_ENABLED && (
+        <AirMap place={place} venues={state.status === "done" ? state.venues : null} active={active} onActive={setActive} />
+      )}
       <div className="border-t border-line">
         {state.status === "loading" && (
           <div className="flex items-center gap-2 px-5 py-4 text-[13px] text-ink-2"><Spinner />Finding venues near you</div>
@@ -25,7 +32,9 @@ export function Venues({ state }: { state: VenuesState }) {
         {state.status === "done" && state.venues.length > 0 && (
           <ul>
             {state.venues.map((v) => (
-              <li key={`${v.name}-${v.lat}-${v.lon}`} className="flex items-center justify-between gap-4 border-b border-line px-5 py-2.5 last:border-0">
+              <li key={venueId(v)} onPointerEnter={() => setActive(venueId(v))} onPointerLeave={() => setActive(null)}
+                className={`flex items-center justify-between gap-4 border-b border-line px-5 py-2.5 transition-colors last:border-0 ${
+                  active === venueId(v) ? "bg-surface-2" : ""}`}>
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium text-ink">{v.name}</div>
                   <div className="truncate text-xs text-ink-2">
@@ -42,9 +51,7 @@ export function Venues({ state }: { state: VenuesState }) {
                         </span>
                       )}
                       <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-surface-2 pr-2.5 pl-2 text-[13px] font-medium text-ink ring-1 ring-line">
-                        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-                          <path d="M2 7.5L8 2.5l6 5M3.5 6.5V13.5h9V6.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                        </svg>
+                        <IndoorIcon />
                         Indoor
                       </span>
                     </>

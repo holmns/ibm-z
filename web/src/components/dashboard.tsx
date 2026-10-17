@@ -230,7 +230,7 @@ export function Dashboard() {
                 tz={result.timezone} planned={result.planned.start} plannedLevel={result.planned.level} onPick={pickStart}
                 noun={isActivityPlan(result.plan) ? "session" : "run"} />
               <OptionsTable r={result} onApply={apply} />
-              <Venues state={venues} />
+              <Venues state={venues} place={result.place} />
               <Notes r={result} />
             </div>
           )}
