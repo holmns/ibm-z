@@ -63,7 +63,7 @@ function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   const holding = (["heat", "uv", "rain"] as const).filter((k) => levels[k] === planned.level);
   if (holding.length) {
     return {
-      text: `${cap(joinNames(holding))} keeps every start in the forecast at ${planned.level} or above. ` +
+      text: `${cap(joinNames(holding))} ${holding.length > 1 ? "keep" : "keeps"} every start in the forecast at ${planned.level} or above. ` +
         "A shaded or indoor venue helps more than a new time.",
     };
   }
