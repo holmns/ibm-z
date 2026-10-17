@@ -47,8 +47,8 @@ const TITLE_H = 22;
 const GAP = 14;
 const AXIS_H = 52;
 
-export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName }: {
-  timeline: TimelineHour[]; tz: string; runStart: number; runEnd: number; placeName: string;
+export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName, label = "Your run" }: {
+  timeline: TimelineHour[]; tz: string; runStart: number; runEnd: number; placeName: string; label?: string;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -197,7 +197,7 @@ export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName }: {
                 fill="var(--accent)" />
               <text x={xs(runStart) > M.left + plotW - 80 ? xs(runEnd) : xs(runStart)} y={plotBottom + 46}
                 textAnchor={xs(runStart) > M.left + plotW - 80 ? "end" : "start"} className="fill-accent-ink text-[11px] font-medium">
-                Your run, {fmtTime(runStart, tz)} to {fmtTime(runEnd, tz)}
+                {label}, {fmtTime(runStart, tz)} to {fmtTime(runEnd, tz)}
               </text>
               {/* x axis */}
               {ticks.map((t) => (
@@ -215,7 +215,7 @@ export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName }: {
             <Tooltip x={xs(h.t)} y={plotTop} containerWidth={width}>
               <div className="mb-1.5 flex items-baseline justify-between gap-3">
                 <span className="font-medium text-ink">{fmtDayTime(h.t, tz)}</span>
-                {inRun(h.t) && <span className="text-xs font-medium text-accent-ink">your run</span>}
+                {inRun(h.t) && <span className="text-xs font-medium text-accent-ink">{label.toLowerCase()}</span>}
               </div>
               <TipRow value={`${fmt(h.pm25)} µg/m³`} label="PM2.5" />
               <TipRow value={`${fmt(h.apparentTempC, 1)}°C`} label="Feels like" />

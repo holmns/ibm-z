@@ -42,3 +42,6 @@ next-env.d.ts
 
 # venue datasets downloaded at runtime
 /.cache/
+
+# the template is committed; real keys stay in .env
+!.env.example

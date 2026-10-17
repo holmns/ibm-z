@@ -2,3 +2,4 @@ data/**/*.csv
 
 .venv/
 .env.local
+.env

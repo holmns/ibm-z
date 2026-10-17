@@ -2,7 +2,8 @@
 
 import { Fragment, useMemo, type ReactNode } from "react";
 import { fmt } from "@/lib/format";
-import { dayOptions, paceInfo, type FormState, type RunRow } from "@/lib/form";
+import { dayOptions, needsLookup, paceInfo, type FormState, type RunRow } from "@/lib/form";
+import { activityTitle, INTENSITIES } from "@/lib/session";
 import { PlaceSearch } from "./place-search";
 import { Field, inputClass, Segmented, Spinner, SuffixInput } from "./ui";
 
@@ -12,6 +13,9 @@ type Props = {
   onSubmit: () => void;
   pending: boolean;
   dirty: boolean;
+  onLookup: () => void;
+  lookupPending: boolean;
+  lookupError: string | null;
 };
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
@@ -60,9 +64,43 @@ function AddButton({ onClick, children }: { onClick: () => void; children: React
   );
 }
 
-export function PlanForm({ form, set, onSubmit, pending, dirty }: Props) {
+// what the last lookup matched, and how; a stale lookup says so rather than showing an old match as current
+function ActivityStatus({ form, error, pending }: { form: FormState; error: string | null; pending: boolean }) {
+  const a = form.activity;
+  if (error) return <p role="alert" className="text-xs leading-[18px] text-danger-ink">{error}</p>;
+  if (pending) return <p className="text-xs leading-[18px] text-ink-2">Reading the description and searching the activity database…</p>;
+  if (needsLookup(form)) {
+    return <p className="text-xs leading-[18px] text-ink-2">Press Look up, or Assess, to match this to an activity.</p>;
+  }
+  const via = a.source === "gemini" ? "Read by Gemini, " : a.source === "rules" ? "Keyword match, " : "";
+  return (
+    <div className="space-y-1 text-xs leading-[18px]">
+      {a.kind === "run" && (
+        <p className="text-ink-2">{via}running: uses your pace, distance and running history.</p>
+      )}
+      {a.kind === "activity" && (
+        <p className="text-ink-2">
+          {via}matched <span className="font-medium text-ink">{activityTitle(a.info)}</span>:{" "}
+          {(a.info.levels?.[a.intensity] ?? a.info).name}, {fmt((a.info.levels?.[a.intensity] ?? a.info).met, 1)} MET
+          (Compendium {(a.info.levels?.[a.intensity] ?? a.info).code}).
+          {a.info.indoorOnly && " Usually done indoors, so outdoor air overstates the dose."}
+        </p>
+      )}
+      {a.kind === "not-found" && (
+        <p className="text-danger-ink">
+          Activity not found. Nothing in the activity database matches “{a.text}”. The forecast still shows, without a dose
+          or risk level. Try other words, such as the sport&apos;s common name.
+        </p>
+      )}
+      {a.note && <p className="text-muted">{a.note}</p>}
+    </div>
+  );
+}
+
+export function PlanForm({ form, set, onSubmit, pending, dirty, onLookup, lookupPending, lookupError }: Props) {
   const days = useMemo(() => dayOptions(), []);
   const info = paceInfo(form);
+  const isRun = form.activity.kind === "run";
   const setRun = (i: number, patch: Partial<RunRow>) =>
     set({ runs: form.runs.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
   const historyCount = (form.bestEffort ? 1 : 0) + form.runs.length;
@@ -95,19 +133,51 @@ export function PlanForm({ form, set, onSubmit, pending, dirty }: Props) {
         </div>
       </Section>
 
-      <Section title="The run" aside={info && (
+      <Section title="The activity" aside={isRun && info && (
         <span className="text-xs text-ink-2 tnum">{fmt(info.minutes)} min at {fmt(info.speedKmh, 1)} km/h</span>
       )}>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Distance" htmlFor="distance">
-            <SuffixInput id="distance" suffix="km" inputMode="decimal" type="number" step="0.1" min="0.1"
-              value={form.distanceKm} onChange={(e) => set({ distanceKm: e.target.value })} />
+        <Field label="What are you doing?" htmlFor="activity">
+          <div className="flex gap-2">
+            <input id="activity" className={inputClass} value={form.activityText} maxLength={300}
+              placeholder="Running, badminton doubles, Muay Thai class…"
+              onChange={(e) => set({ activityText: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onLookup();
+                }
+              }} />
+            <button type="button" onClick={onLookup} disabled={lookupPending || !form.activityText.trim()}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink transition-colors hover:border-axis disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+              {lookupPending && <Spinner />}Look up
+            </button>
+          </div>
+        </Field>
+        <ActivityStatus form={form} error={lookupError} pending={lookupPending} />
+        {form.activity.kind === "activity" && form.activity.info.levels && (
+          <Field label="Intensity">
+            <Segmented label="Intensity" value={form.activity.intensity}
+              onChange={(intensity) => form.activity.kind === "activity" && set({ activity: { ...form.activity, intensity } })}
+              options={INTENSITIES.map((i) => ({ value: i, label: `${i[0].toUpperCase()}${i.slice(1)}` }))} />
           </Field>
-          <Field label="Pace" htmlFor="pace">
-            <SuffixInput id="pace" suffix="/km" placeholder="6:00" value={form.pace}
-              onChange={(e) => set({ pace: e.target.value })} />
+        )}
+        {isRun ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Distance" htmlFor="distance">
+              <SuffixInput id="distance" suffix="km" inputMode="decimal" type="number" step="0.1" min="0.1"
+                value={form.distanceKm} onChange={(e) => set({ distanceKm: e.target.value })} />
+            </Field>
+            <Field label="Pace" htmlFor="pace">
+              <SuffixInput id="pace" suffix="/km" placeholder="6:00" value={form.pace}
+                onChange={(e) => set({ pace: e.target.value })} />
+            </Field>
+          </div>
+        ) : (
+          <Field label="Duration" htmlFor="minutes">
+            <SuffixInput id="minutes" suffix="min" inputMode="numeric" type="number" step="5" min="1" max="600"
+              value={form.minutes} onChange={(e) => set({ minutes: e.target.value })} />
           </Field>
-        </div>
+        )}
       </Section>
 
       <Section title="About you">
@@ -131,7 +201,7 @@ export function PlanForm({ form, set, onSubmit, pending, dirty }: Props) {
         </div>
       </Section>
 
-      <details className="group border-t border-line">
+      {isRun && <details className="group border-t border-line">
         <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 [&::-webkit-details-marker]:hidden">
           <span className="text-[13px] font-semibold text-ink">
             Running history <span className="font-normal text-ink-2">, optional</span>
@@ -197,7 +267,7 @@ export function PlanForm({ form, set, onSubmit, pending, dirty }: Props) {
             )}
           </div>
         </div>
-      </details>
+      </details>}
 
       <Section title="Thresholds">
         <Segmented label="Thresholds" value={form.group} onChange={(group) => set({ group })}
@@ -226,7 +296,7 @@ export function PlanForm({ form, set, onSubmit, pending, dirty }: Props) {
           className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-sm font-semibold text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-progress disabled:opacity-80"
         >
           {pending && <Spinner />}
-          {pending ? "Checking the forecast" : "Assess run"}
+          {pending ? "Checking the forecast" : isRun ? "Assess run" : "Assess activity"}
         </button>
         {dirty && !pending && (
           <p className="mt-2.5 text-center text-xs text-ink-2">Inputs changed. The results show your last check.</p>

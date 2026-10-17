@@ -1,5 +1,6 @@
 // Dashboard form state. Fields stay strings while typing; toRequest turns them into an API request.
 import type { Group } from "./risk";
+import type { ActivityInfo, ActivityLookup, Intensity, SessionPlan } from "./session";
 import { fmtDay, localDateKey, parseLocal, startOfLocalDay, wallParts } from "./time";
 import type { AssessRequest, Place } from "./types";
 import { isDuration, toMinutes } from "./duration";
@@ -8,10 +9,19 @@ export const DEFAULT_TZ = "Asia/Singapore";
 
 export type RunRow = { distanceKm: string; time: string; avgHr: string };
 
+// what the activity text was last looked up as; text is the input it belongs to, so an edit shows it is stale
+export type ActivityChoice =
+  | { kind: "run"; text: string; source: "gemini" | "rules" | null; note: string | null }
+  | { kind: "activity"; text: string; info: ActivityInfo; intensity: Intensity; source: "gemini" | "rules"; note: string | null }
+  | { kind: "not-found"; text: string; source: "gemini" | "rules"; note: string | null };
+
 export type FormState = {
   place: Place;
   day: string;
   time: string;
+  activityText: string;
+  activity: ActivityChoice;
+  minutes: string;
   distanceKm: string;
   pace: string;
   age: string;
@@ -36,6 +46,9 @@ export function defaultForm(): FormState {
   return {
     place: { name: "East Coast Park", lat: 1.301, lon: 103.912 },
     ...defaultStart(),
+    activityText: "Running",
+    activity: { kind: "run", text: "Running", source: null, note: null },
+    minutes: "60",
     distanceKm: "10",
     pace: "6:00",
     age: "30",
@@ -74,15 +87,58 @@ export function paceInfo(f: Pick<FormState, "pace" | "distanceKm">) {
   return { minutes: pace * d, speedKmh: 60 / pace };
 }
 
+const n = (s: string) => (s.trim() === "" ? NaN : Number(s));
+
+// the activity text changed since it was last looked up
+export function needsLookup(f: Pick<FormState, "activityText" | "activity">) {
+  return f.activityText.trim() !== f.activity.text.trim();
+}
+
+// fold a lookup into the form: the matched activity, plus any numbers or start time the text gave
+export function applyLookup(f: FormState, l: ActivityLookup, now = Date.now() / 1000, tz = DEFAULT_TZ): FormState {
+  const p = l.parsed;
+  const out: FormState = { ...f, activityText: l.text };
+  if (l.kind === "run") {
+    out.activity = { kind: "run", text: l.text, source: p.source, note: p.note };
+    if (p.pace) out.pace = p.pace;
+    if (p.distanceKm) out.distanceKm = String(p.distanceKm);
+    else if (p.minutes && isDuration(out.pace)) out.distanceKm = String(Math.round((p.minutes / toMinutes(out.pace)) * 10) / 10);
+  } else {
+    out.activity = l.kind === "activity" && l.match
+      ? { kind: "activity", text: l.text, info: l.match, intensity: l.match.intensity ?? p.intensity ?? "moderate", source: p.source, note: p.note }
+      : { kind: "not-found", text: l.text, source: p.source, note: p.note };
+    if (p.minutes) out.minutes = String(p.minutes);
+  }
+  if (p.startTime) out.time = p.startTime;
+  if (p.day) out.day = localDateKey(startOfLocalDay(now, tz) + (p.day === "tomorrow" ? 86400 : 0) + 12 * 3600, tz);
+  return out;
+}
+
+export function planFor(f: FormState): SessionPlan | { error: string } {
+  const a = f.activity;
+  if (a.kind === "run") {
+    if (!isDuration(f.pace)) return { error: "Pace must look like 6:00, minutes and seconds per km." };
+    return { pace: f.pace.trim(), distanceKm: n(f.distanceKm) };
+  }
+  const minutes = n(f.minutes);
+  if (!(minutes > 0)) return { error: "Enter how many minutes the session lasts." };
+  if (a.kind === "not-found") return { kind: "activity", text: a.text, code: null, family: null, intensity: null, minutes };
+  const family = a.info.family;
+  return {
+    kind: "activity", text: a.text, code: a.info.levels?.[a.intensity].code ?? a.info.code, family,
+    intensity: family ? a.intensity : null, minutes,
+  };
+}
+
 export function toRequest(f: FormState): AssessRequest | { error: string } {
-  const n = (s: string) => (s.trim() === "" ? NaN : Number(s));
-  if (!isDuration(f.pace)) return { error: "Pace must look like 6:00, minutes and seconds per km." };
+  const plan = planFor(f);
+  if ("error" in plan) return plan;
   if (!/^\d{1,2}:\d{2}$/.test(f.time)) return { error: "Pick a start time." };
   const runs = f.runs.filter((r) => r.distanceKm || r.time || r.avgHr);
   return {
     place: f.place,
     start: `${f.day}T${f.time}`,
-    plan: { pace: f.pace.trim(), distanceKm: n(f.distanceKm) },
+    plan,
     person: { age: n(f.age), sex: f.sex, heightCm: n(f.heightCm), weightKg: n(f.weightKg) },
     history: {
       bestEffort: f.bestEffort && (f.bestEffort.distanceKm || f.bestEffort.time)

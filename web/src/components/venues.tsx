@@ -9,7 +9,7 @@ export type VenuesState = { status: "loading" } | { status: "error"; message: st
 
 export function Venues({ state }: { state: VenuesState }) {
   const subtitle = state.status === "done" && state.preferIndoor
-    ? "Indoor venues first, since the run scores Medium or worse or rain is likely. Indoor is a guess from the venue name, so check with the operator."
+    ? "Indoor venues first, since the plan scores Medium or worse or rain is likely. Indoor is a guess from the venue name, so check with the operator."
     : "The nearest ActiveSG venues and park facilities within 12 km.";
   return (
     <Card>

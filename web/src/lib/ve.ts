@@ -12,9 +12,10 @@ export type HistoryRun = { distanceKm: number; time: string; avgHr: number };
 export type History = { bestEffort?: BestEffort | null; runs?: HistoryRun[] | null };
 export type Variant = "A" | "B" | "C";
 
+// runs use variants A-C from pace; other activities use "MET" (ve-others.ts), with no speed and the MET fields set
 export type VeResult = {
-  variant: Variant;
-  speedKmh: number;
+  variant: Variant | "MET";
+  speedKmh: number | null;
   minutes: number;
   veLmin: number;
   veP10: number;
@@ -24,6 +25,9 @@ export type VeResult = {
   airP90M3: number;
   notes: string[];
   warnings: string[];
+  met?: number;
+  vo2MlMin?: number;
+  bandKind?: "gait" | "sport";
 };
 
 type Row = { Speed: number; Age: number; Sex: number; Weight: number; Height: number; HR: number; vpeak: number };

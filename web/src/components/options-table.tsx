@@ -1,18 +1,22 @@
 "use client";
 
 import { fmt } from "@/lib/format";
+import { isActivityPlan, type SessionPlan } from "@/lib/session";
 import { fmtDayTime } from "@/lib/time";
 import type { AssessResponse, OptionRow } from "@/lib/types";
 import { Card, CardHeader, StatusPill } from "./ui";
 
 export function OptionsTable({ r, onApply }: { r: AssessResponse; onApply: (o: OptionRow) => void }) {
-  const same = (o: OptionRow) => o.start === r.planned.start && o.plan?.pace === r.plan.pace &&
-    o.plan?.distanceKm === r.plan.distanceKm;
+  const key = (p: SessionPlan | null) => (!p ? "" : isActivityPlan(p) ? `${p.code}|${p.intensity}|${p.minutes}` : `${p.pace}|${p.distanceKm}`);
+  const same = (o: OptionRow) => o.start === r.planned.start && key(o.plan) === key(r.plan);
+  const activity = isActivityPlan(r.plan);
   return (
     <Card>
       <CardHeader
         title="Ways to change the plan"
-        subtitle="Timing moves the score the most. Slowing down barely helps, because a slower run lasts longer. Best start is the lowest level on each day between 05:00 and 21:00, then the lowest dose."
+        subtitle={activity
+          ? "Timing moves the score the most. A shorter or lighter session lowers its own dose, but most of the day's air is breathed outside it. Best start is the lowest level on each day between 05:00 and 21:00, then the lowest dose."
+          : "Timing moves the score the most. Slowing down barely helps, because a slower run lasts longer. Best start is the lowest level on each day between 05:00 and 21:00, then the lowest dose."}
       />
       <div className="overflow-x-auto border-t border-line">
         <table className="w-full min-w-[780px] text-[13px] tnum [&_th]:whitespace-nowrap">

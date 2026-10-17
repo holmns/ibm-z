@@ -2,12 +2,15 @@
 
 import { factorReasonText, fmt, pmReasonText } from "@/lib/format";
 import { LEVEL_RANK, neaBand } from "@/lib/risk";
+import { describePlan, isActivityPlan, noun } from "@/lib/session";
 import { fmtDayTime, fmtTime } from "@/lib/time";
 import type { AssessResponse, OptionRow } from "@/lib/types";
 import { Card, StatusIcon, StatusPill } from "./ui";
 
 function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   const planned = r.planned;
+  const n = noun(r.plan);
+  const activity = isActivityPlan(r.plan);
   const alts = r.options.filter((o) => o.kind !== "planned" && o.kind !== "skip");
   // the lowest level, then the option nearest the planned start, so tomorrow beats a better day later in the week
   const gap = (o: OptionRow) => Math.abs(o.start - planned.start);
@@ -15,11 +18,13 @@ function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   if (planned.level === "Low") return { text: "Good to go. Nothing in the forecast calls for a change." };
   if (best && LEVEL_RANK[best.level] < LEVEL_RANK[planned.level]) {
     const what = best.kind === "best-start" ? `Starting ${fmtDayTime(best.start, r.timezone)}`
-      : best.kind === "shorter" ? "Running half the distance" : "Slowing down by 1 min/km";
+      : best.kind === "shorter" ? (activity ? "Halving the time" : "Running half the distance")
+        : best.kind === "easier" && isActivityPlan(best.plan) ? `Dropping to ${best.plan.intensity} intensity`
+          : "Slowing down by 1 min/km";
     return { text: `${what} brings it down to ${best.level}.`, option: best };
   }
   if (r.skip.level === "High") {
-    return { text: "Even without the run, today's air scores High. Train indoors or pick another day." };
+    return { text: `Even without the ${n}, today's air scores High. Train indoors or pick another day.` };
   }
   // name what holds the level up: shortening only helps when PM2.5 is the reason
   if (LEVEL_RANK[planned.factors.level] >= LEVEL_RANK[planned.pmLevel]) {
@@ -29,7 +34,7 @@ function suggestion(r: AssessResponse): { text: string; option?: OptionRow } {
   }
   return {
     text: `No start in the forecast scores lower than ${planned.level}. ` +
-      `Halving the distance cuts the run's dose to ${fmt(planned.runUg / 2)} µg.`,
+      `Halving the ${activity ? "time" : "distance"} cuts the ${n}'s dose to ${fmt(planned.runUg / 2)} µg.`,
   };
 }
 
@@ -52,7 +57,7 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
         </div>
         <p className="mt-3 text-sm leading-5 text-ink-2">
           {r.place.name}, {fmtDayTime(p.start, r.timezone)} to {fmtTime(p.end, r.timezone)}.{" "}
-          {fmt(r.plan.distanceKm, r.plan.distanceKm % 1 ? 1 : 0)} km at {r.plan.pace} per km
+          {describePlan(r.plan, r.activity)}
           {r.group === "vulnerable" ? ", vulnerable thresholds." : "."}
         </p>
       </div>
@@ -80,7 +85,7 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
               : <li>Nothing here raises the level.</li>}
           </ul>
           <p className="mt-2 text-xs leading-[18px] text-ink-2">
-            Worst hour of the run{factorValues ? `, ${factorValues}` : ""}.
+            Worst hour of the {noun(r.plan)}{factorValues ? `, ${factorValues}` : ""}.
           </p>
         </div>
       </div>
@@ -117,9 +122,10 @@ export function StatTiles({ r }: { r: AssessResponse }) {
   const p = r.planned;
   const v = p.ve;
   const vulnerable = r.group === "vulnerable";
+  const n = noun(r.plan);
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      <Tile label="Inhaled during the run" value={fmt(p.runUg)} unit="µg">
+      <Tile label={`Inhaled during the ${n}`} value={fmt(p.runUg)} unit="µg">
         <div className="tnum">80% range {fmt(r.band.p10.runUg)} to {fmt(r.band.p90.runUg)}</div>
         <div>{fmt(p.runShareOfDay * 100)}% of the day&apos;s dose</div>
       </Tile>
@@ -127,17 +133,19 @@ export function StatTiles({ r }: { r: AssessResponse }) {
         <div className="tnum">80% range {fmt(r.band.p10.cEq, 1)} to {fmt(r.band.p90.cEq, 1)}</div>
         <div>{fmt(p.hq, 1)} times the WHO daily guideline</div>
       </Tile>
-      <Tile label="If you skip the run" value={fmt(r.skip.ug)} unit="µg">
+      <Tile label={`If you skip the ${n}`} value={fmt(r.skip.ug)} unit="µg">
         <div className="flex items-center gap-1.5"><StatusIcon level={r.skip.level} size={12} />{r.skip.level} from the day&apos;s air alone</div>
         {/* skipping still breathes through the run's hour at the ordinary rate, so this is less than the run's own dose */}
-        <div>The run adds {fmt(p.runUg + p.restUg - r.skip.ug)} µg to the day</div>
+        <div>The {n} adds {fmt(p.runUg + p.restUg - r.skip.ug)} µg to the day</div>
       </Tile>
-      <Tile label="Breathing during the run" value={fmt(p.veUsed, 1)} unit="L/min">
+      <Tile label={`Breathing during the ${n}`} value={fmt(p.veUsed, 1)} unit="L/min">
         <div className="tnum">
           {vulnerable ? "Top of the 80% range, " : "80% range "}
           {fmt(v.veP10, 1)} to {fmt(v.veP90, 1)}
         </div>
-        <div>{fmt((p.veUsed * v.minutes) / 1000, 2)} m³ of air, model {v.variant}</div>
+        <div>
+          {fmt((p.veUsed * v.minutes) / 1000, 2)} m³ of air, {v.variant === "MET" ? `${fmt(v.met, 1)} MET` : `model ${v.variant}`}
+        </div>
       </Tile>
     </div>
   );

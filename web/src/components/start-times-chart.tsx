@@ -12,9 +12,9 @@ const PLOT_H = 132;
 const TOP = 30;
 const AXIS_H = 30;
 
-export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, onPick }: {
+export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, onPick, noun = "run" }: {
   byStart: StartOption[]; t0: number; t1: number; tz: string; planned: number; plannedLevel: Level;
-  onPick: (start: number) => void;
+  onPick: (start: number) => void; noun?: "run" | "session";
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -41,8 +41,8 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
   return (
     <Card>
       <CardHeader
-        title="The same run at other start times"
-        subtitle="Bar height is PM2.5 inhaled during the run. Colour is the overall level. Pick a bar to plan that start."
+        title={`The same ${noun} at other start times`}
+        subtitle={`Bar height is PM2.5 inhaled during the ${noun}. Colour is the overall level. Pick a bar to plan that start.`}
         action={<TextButton onClick={() => setTable((v) => !v)} pressed={table}>{table ? "Chart" : "Table"}</TextButton>}
       />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-1 text-[13px] text-ink-2">
@@ -89,7 +89,7 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                 width={width}
                 height={base + AXIS_H}
                 role="img"
-                aria-label="PM2.5 inhaled during the run for each start time, coloured by overall risk level"
+                aria-label={`PM2.5 inhaled during the ${noun} for each start time, coloured by overall risk level`}
                 tabIndex={0}
                 className="block outline-none"
                 onPointerLeave={() => setHover(null)}
@@ -106,7 +106,7 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                 }}
               >
                 <text x={0} y={12} className="fill-ink text-[12px] font-semibold">
-                  Inhaled during the run<tspan className="fill-ink-2 font-normal">  µg</tspan>
+                  Inhaled during the {noun}<tspan className="fill-ink-2 font-normal">  µg</tspan>
                 </text>
                 {ticks.filter((t) => t.major && !t.edge).map((t) => (
                   <line key={t.t} x1={xs(t.t)} x2={xs(t.t)} y1={TOP} y2={base} stroke="var(--grid)" />
@@ -161,7 +161,7 @@ export function StartTimesChart({ byStart, t0, t1, tz, planned, plannedLevel, on
                   <span className="font-medium text-ink">{fmtDayTime(h.start, tz)}</span>
                   <StatusPill level={h.level} size="sm" />
                 </div>
-                <TipRow value={`${fmt(h.runUg)} µg`} label="inhaled in the run" />
+                <TipRow value={`${fmt(h.runUg)} µg`} label={`inhaled in the ${noun}`} />
                 <TipRow value={`${fmt(h.cEq, 1)} µg/m³`} label="day-equivalent" />
                 <TipRow value={h.pmLevel} label="PM2.5 level" />
                 <TipRow value={h.factorsLevel} label="heat, UV, rain" />

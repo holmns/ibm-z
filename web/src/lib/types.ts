@@ -1,12 +1,13 @@
 // Request and response shapes shared by the API routes and the dashboard.
 import type { FactorReason } from "./factors";
 import type { Group, Level, PmReason } from "./risk";
-import type { History, Person, Plan, VeResult } from "./ve";
+import type { ActivityInfo, SessionPlan } from "./session";
+import type { History, Person, VeResult } from "./ve";
 
 export type Place = { name: string; lat: number; lon: number; address?: string };
 
 export type PlanInputs = {
-  plan: Plan;
+  plan: SessionPlan;
   person: Person;
   history: History;
   group: Group;
@@ -64,8 +65,8 @@ export type StartOption = {
 export type OptionRow = {
   key: string;
   label: string;
-  kind: "planned" | "skip" | "shorter" | "slower" | "best-start";
-  plan: Plan | null;
+  kind: "planned" | "skip" | "shorter" | "slower" | "easier" | "best-start";
+  plan: SessionPlan | null;
   start: number;
   minutes: number;
   veLmin: number | null;
@@ -92,7 +93,8 @@ export type TimelineHour = {
   isDay: boolean | null;
 };
 
-export type AssessResponse = {
+// the forecast part of a response, which is all there is when the activity isn't in the database
+export type Conditions = {
   place: Place;
   timezone: string;
   fetchedAt: number;
@@ -101,14 +103,24 @@ export type AssessResponse = {
   pmHorizon: number;
   group: Group;
   indoorRatio: number;
-  plan: Plan;
+  timeline: TimelineHour[];
+};
+
+export type AssessResponse = Conditions & {
+  found: true;
+  plan: SessionPlan;
+  activity: ActivityInfo | null; // null for a run
   planned: RunResult;
   band: { p10: { runUg: number; cEq: number }; p90: { runUg: number; cEq: number } };
   skip: { cEq: number; level: Level; ug: number }; // ug: the whole day breathed at the ordinary rate
-  timeline: TimelineHour[];
   byStart: StartOption[];
   options: OptionRow[];
 };
+
+// the activity matched nothing in hazewise.db: the forecast still shows, with the planned window marked
+export type NotFoundResponse = Conditions & { found: false; query: string; start: number; end: number };
+
+export type AssessResult = AssessResponse | NotFoundResponse;
 
 export type Venue = {
   name: string;

@@ -1,0 +1,1089 @@
+{
+ "cases": [
+  {
+   "text": "badminton",
+   "intensity": "moderate",
+   "minutes": 90,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "15020",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.0,
+    "vo2_mlmin": 1715.0,
+    "minutes": 90.0,
+    "ve_lmin": 41.49606310533759,
+    "ve_p10": 29.80321232305253,
+    "ve_p90": 55.9058947798858,
+    "air_m3": 3.734645679480383,
+    "notes": [
+     "Badminton, competitive: 7 MET (Compendium 15020)",
+     "VO2 1715 mL/min = 7 MET × 3.5 × 70 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average"
+    ]
+   }
+  },
+  {
+   "text": "badminton",
+   "intensity": "moderate",
+   "minutes": 90,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "15020",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.0,
+    "vo2_mlmin": 1274.0,
+    "minutes": 90.0,
+    "ve_lmin": 38.94940851431539,
+    "ve_p10": 27.974159593470855,
+    "ve_p90": 52.47489451258364,
+    "air_m3": 3.505446766288385,
+    "notes": [
+     "Badminton, competitive: 7 MET (Compendium 15020)",
+     "VO2 1274 mL/min = 7 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "badminton",
+   "intensity": "moderate",
+   "minutes": 90,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "15020",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.0,
+    "vo2_mlmin": 3430.0,
+    "minutes": 90.0,
+    "ve_lmin": 77.52689732927116,
+    "ve_p10": 55.681199828196696,
+    "ve_p90": 104.44871730840747,
+    "air_m3": 6.977420759634405,
+    "notes": [
+     "Badminton, competitive: 7 MET (Compendium 15020)",
+     "VO2 3430 mL/min = 7 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "Muay Thai class",
+   "intensity": "vigorous",
+   "minutes": 60,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "15432",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 14.3,
+    "vo2_mlmin": 3503.5000000000005,
+    "minutes": 60.0,
+    "ve_lmin": 108.26861994645152,
+    "ve_p10": 77.76045308194361,
+    "ve_p90": 145.8657429579432,
+    "air_m3": 6.496117196787091,
+    "notes": [
+     "Taekwondo, combat simulation: 14.3 MET (Compendium 15432)",
+     "VO2 3504 mL/min = 14.3 MET × 3.5 × 70 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average"
+    ]
+   }
+  },
+  {
+   "text": "Muay Thai class",
+   "intensity": "vigorous",
+   "minutes": 60,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "15432",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 14.3,
+    "vo2_mlmin": 2602.6000000000004,
+    "minutes": 60.0,
+    "ve_lmin": 101.62406724875706,
+    "ve_p10": 72.98821687393507,
+    "ve_p90": 136.9138174937434,
+    "air_m3": 6.097444034925424,
+    "notes": [
+     "Taekwondo, combat simulation: 14.3 MET (Compendium 15432)",
+     "VO2 2603 mL/min = 14.3 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "Muay Thai class",
+   "intensity": "vigorous",
+   "minutes": 60,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "15432",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 14.3,
+    "vo2_mlmin": 7007.000000000001,
+    "minutes": 60.0,
+    "ve_lmin": 202.27774768085763,
+    "ve_p10": 145.27948463588115,
+    "ve_p90": 272.52027377757946,
+    "air_m3": 12.136664860851457,
+    "notes": [
+     "Taekwondo, combat simulation: 14.3 MET (Compendium 15432)",
+     "VO2 7007 mL/min = 14.3 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "cycling along the pcn",
+   "intensity": "light",
+   "minutes": 45,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "01010",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 4.0,
+    "vo2_mlmin": 980.0,
+    "minutes": 45.0,
+    "ve_lmin": 23.964066662685386,
+    "ve_p10": 17.21141991371056,
+    "ve_p90": 32.28577578411119,
+    "air_m3": 1.0783829998208423,
+    "notes": [
+     "Bicycling, <10 mph, leisure, to work or for pleasure: 4 MET (Compendium 01010)",
+     "VO2 980 mL/min = 4 MET × 3.5 × 70 kg"
+    ],
+    "warnings": []
+   }
+  },
+  {
+   "text": "cycling along the pcn",
+   "intensity": "light",
+   "minutes": 45,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "01010",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 4.0,
+    "vo2_mlmin": 728.0,
+    "minutes": 45.0,
+    "ve_lmin": 22.493368099518804,
+    "ve_p10": 16.155137985711853,
+    "ve_p90": 30.304365670178136,
+    "air_m3": 1.0122015644783462,
+    "notes": [
+     "Bicycling, <10 mph, leisure, to work or for pleasure: 4 MET (Compendium 01010)",
+     "VO2 728 mL/min = 4 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "cycling along the pcn",
+   "intensity": "light",
+   "minutes": 45,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "01010",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 4.0,
+    "vo2_mlmin": 1960.0,
+    "minutes": 45.0,
+    "ve_lmin": 44.77195176404207,
+    "ve_p10": 32.1560139609865,
+    "ve_p90": 60.31936133451412,
+    "air_m3": 2.014737829381893,
+    "notes": [
+     "Bicycling, <10 mph, leisure, to work or for pleasure: 4 MET (Compendium 01010)",
+     "VO2 1960 mL/min = 4 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "park gym",
+   "intensity": "moderate",
+   "minutes": 40,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "02052",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 5.0,
+    "vo2_mlmin": 1225.0,
+    "minutes": 40.0,
+    "ve_lmin": 29.196754489349757,
+    "ve_p10": 20.969629600312633,
+    "ve_p90": 39.33555528514194,
+    "air_m3": 1.1678701795739903,
+    "notes": [
+     "Resistance (weight) training, squats, deadlift, slow or explosive effort: 5 MET (Compendium 02052)",
+     "VO2 1225 mL/min = 5 MET × 3.5 × 70 kg"
+    ],
+    "warnings": []
+   }
+  },
+  {
+   "text": "park gym",
+   "intensity": "moderate",
+   "minutes": 40,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "02052",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 5.0,
+    "vo2_mlmin": 910.0,
+    "minutes": 40.0,
+    "ve_lmin": 27.404920679127734,
+    "ve_p10": 19.682702612609983,
+    "ve_p90": 36.9214932040471,
+    "air_m3": 1.0961968271651095,
+    "notes": [
+     "Resistance (weight) training, squats, deadlift, slow or explosive effort: 5 MET (Compendium 02052)",
+     "VO2 910 mL/min = 5 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "park gym",
+   "intensity": "moderate",
+   "minutes": 40,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "02052",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 5.0,
+    "vo2_mlmin": 2450.0,
+    "minutes": 40.0,
+    "ve_lmin": 54.548157542024775,
+    "ve_p10": 39.17745924304734,
+    "ve_p90": 73.49043084496391,
+    "air_m3": 2.181926301680991,
+    "notes": [
+     "Resistance (weight) training, squats, deadlift, slow or explosive effort: 5 MET (Compendium 02052)",
+     "VO2 2450 mL/min = 5 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "brisk walk",
+   "intensity": "vigorous",
+   "minutes": 30,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "17200",
+   "out": {
+    "variant": "MET",
+    "band_kind": "gait",
+    "met": 4.8,
+    "vo2_mlmin": 1176.0,
+    "minutes": 30.0,
+    "ve_lmin": 28.1606729014676,
+    "ve_p10": 22.37902503775139,
+    "ve_p90": 33.847407246648956,
+    "air_m3": 0.844820187044028,
+    "notes": [
+     "Walking, 3.5 to 3.9 mph, level, brisk, firm surface, walking for exercise: 4.8 MET (Compendium 17200)",
+     "VO2 1176 mL/min = 4.8 MET × 3.5 × 70 kg"
+    ],
+    "warnings": []
+   }
+  },
+  {
+   "text": "brisk walk",
+   "intensity": "vigorous",
+   "minutes": 30,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "17200",
+   "out": {
+    "variant": "MET",
+    "band_kind": "gait",
+    "met": 4.8,
+    "vo2_mlmin": 873.6,
+    "minutes": 30.0,
+    "ve_lmin": 26.43242444693958,
+    "ve_p10": 21.005602052772858,
+    "ve_p90": 31.770158259436265,
+    "air_m3": 0.7929727334081874,
+    "notes": [
+     "Walking, 3.5 to 3.9 mph, level, brisk, firm surface, walking for exercise: 4.8 MET (Compendium 17200)",
+     "VO2 874 mL/min = 4.8 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "brisk walk",
+   "intensity": "vigorous",
+   "minutes": 30,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "17200",
+   "out": {
+    "variant": "MET",
+    "band_kind": "gait",
+    "met": 4.8,
+    "vo2_mlmin": 2352.0,
+    "minutes": 30.0,
+    "ve_lmin": 52.61245123936693,
+    "ve_p10": 41.81062603521472,
+    "ve_p90": 63.236949968283845,
+    "air_m3": 1.578373537181008,
+    "notes": [
+     "Walking, 3.5 to 3.9 mph, level, brisk, firm surface, walking for exercise: 4.8 MET (Compendium 17200)",
+     "VO2 2352 mL/min = 4.8 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "tai chi",
+   "intensity": "light",
+   "minutes": 60,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "15672",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 1.5,
+    "vo2_mlmin": 367.5,
+    "minutes": 60.0,
+    "ve_lmin": 10.058656129375715,
+    "ve_p10": 7.2243061600173295,
+    "ve_p90": 13.551602950102492,
+    "air_m3": 0.6035193677625429,
+    "notes": [
+     "Tai chi, qi gong, sitting, light effort: 1.5 MET (Compendium 15672)",
+     "VO2 368 mL/min = 1.5 MET × 3.5 × 70 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "VO2 mL/kg/min 5.25 outside the data (11.64-59.1)"
+    ]
+   }
+  },
+  {
+   "text": "tai chi",
+   "intensity": "light",
+   "minutes": 60,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "15672",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 1.5,
+    "vo2_mlmin": 273.0,
+    "minutes": 60.0,
+    "ve_lmin": 9.441346416250342,
+    "ve_p10": 6.780943318519442,
+    "ve_p90": 12.719927622711024,
+    "air_m3": 0.5664807849750205,
+    "notes": [
+     "Tai chi, qi gong, sitting, light effort: 1.5 MET (Compendium 15672)",
+     "VO2 273 mL/min = 1.5 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "VO2 mL/kg/min 5.25 outside the data (11.64-59.1)",
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "tai chi",
+   "intensity": "light",
+   "minutes": 60,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "15672",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 1.5,
+    "vo2_mlmin": 735.0,
+    "minutes": 60.0,
+    "ve_lmin": 18.792539403870535,
+    "ve_p10": 13.497136837321863,
+    "ve_p90": 25.31839533530362,
+    "air_m3": 1.127552364232232,
+    "notes": [
+     "Tai chi, qi gong, sitting, light effort: 1.5 MET (Compendium 15672)",
+     "VO2 735 mL/min = 1.5 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "VO2 mL/kg/min 5.25 outside the data (11.64-59.1)",
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "rock climbing",
+   "intensity": "moderate",
+   "minutes": 120,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "15535",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.3,
+    "vo2_mlmin": 1788.5,
+    "minutes": 120.0,
+    "ve_lmin": 43.60964367550599,
+    "ve_p10": 31.32122356991958,
+    "ve_p90": 58.7534326936559,
+    "air_m3": 5.233157241060718,
+    "notes": [
+     "Rock climbing, ascending rock, high difficulty: 7.3 MET (Compendium 15535)",
+     "VO2 1788 mL/min = 7.3 MET × 3.5 × 70 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average"
+    ]
+   }
+  },
+  {
+   "text": "rock climbing",
+   "intensity": "moderate",
+   "minutes": 120,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "15535",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.3,
+    "vo2_mlmin": 1328.6000000000001,
+    "minutes": 120.0,
+    "ve_lmin": 40.93327654648107,
+    "ve_p10": 29.399008983001135,
+    "ve_p90": 55.14767619748443,
+    "air_m3": 4.911993185577729,
+    "notes": [
+     "Rock climbing, ascending rock, high difficulty: 7.3 MET (Compendium 15535)",
+     "VO2 1329 mL/min = 7.3 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "rock climbing",
+   "intensity": "moderate",
+   "minutes": 120,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "15535",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 7.3,
+    "vo2_mlmin": 3577.0,
+    "minutes": 120.0,
+    "ve_lmin": 81.47568985555569,
+    "ve_p10": 58.517293020502514,
+    "ve_p90": 109.76875884877387,
+    "air_m3": 9.777082782666684,
+    "notes": [
+     "Rock climbing, ascending rock, high difficulty: 7.3 MET (Compendium 15535)",
+     "VO2 3577 mL/min = 7.3 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "the MET averages play and rest; hard rallies or rounds breathe more than the average",
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  },
+  {
+   "text": "treadmill",
+   "intensity": "moderate",
+   "minutes": 30,
+   "person": {
+    "age": 30,
+    "sex": "male",
+    "height_cm": 175,
+    "weight_kg": 70
+   },
+   "code": "02065",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 9.3,
+    "vo2_mlmin": 2278.5000000000005,
+    "minutes": 30.0,
+    "ve_lmin": 58.86659556581839,
+    "ve_p10": 42.279038421784165,
+    "ve_p90": 79.30848016590322,
+    "air_m3": 1.7659978669745517,
+    "notes": [
+     "Stair treadmill ergometer, general: 9.3 MET (Compendium 02065)",
+     "VO2 2279 mL/min = 9.3 MET × 3.5 × 70 kg"
+    ],
+    "warnings": [
+     "this activity is usually done indoors; outdoor PM2.5 overstates the dose"
+    ]
+   }
+  },
+  {
+   "text": "treadmill",
+   "intensity": "moderate",
+   "minutes": 30,
+   "person": {
+    "age": 68,
+    "sex": "female",
+    "height_cm": 155,
+    "weight_kg": 52
+   },
+   "code": "02065",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 9.3,
+    "vo2_mlmin": 1692.6000000000001,
+    "minutes": 30.0,
+    "ve_lmin": 55.253894151831574,
+    "ve_p10": 39.68433185823569,
+    "ve_p90": 74.44123999883513,
+    "air_m3": 1.6576168245549472,
+    "notes": [
+     "Stair treadmill ergometer, general: 9.3 MET (Compendium 02065)",
+     "VO2 1693 mL/min = 9.3 MET × 3.5 × 52 kg"
+    ],
+    "warnings": [
+     "this activity is usually done indoors; outdoor PM2.5 overstates the dose",
+     "age 68 outside the data (10.8-63)"
+    ]
+   }
+  },
+  {
+   "text": "treadmill",
+   "intensity": "moderate",
+   "minutes": 30,
+   "person": {
+    "age": 16,
+    "sex": "male",
+    "height_cm": 170,
+    "weight_kg": 140
+   },
+   "code": "02065",
+   "out": {
+    "variant": "MET",
+    "band_kind": "sport",
+    "met": 9.3,
+    "vo2_mlmin": 4557.000000000001,
+    "minutes": 30.0,
+    "ve_lmin": 109.98018050459106,
+    "ve_p10": 78.9897263888717,
+    "ve_p90": 148.17165627386072,
+    "air_m3": 3.299405415137732,
+    "notes": [
+     "Stair treadmill ergometer, general: 9.3 MET (Compendium 02065)",
+     "VO2 4557 mL/min = 9.3 MET × 3.5 × 140 kg"
+    ],
+    "warnings": [
+     "this activity is usually done indoors; outdoor PM2.5 overstates the dose",
+     "weight kg 140 outside the data (41-135)"
+    ]
+   }
+  }
+ ],
+ "lookups": [
+  {
+   "text": "badminton",
+   "out": {
+    "light": {
+     "code": "15030",
+     "family": "badminton",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "15020",
+     "family": "badminton",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "15025",
+     "family": "badminton",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "Badminton doubles with friends",
+   "out": {
+    "light": {
+     "code": "15030",
+     "family": "badminton",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "15020",
+     "family": "badminton",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "15025",
+     "family": "badminton",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "muay thai",
+   "out": {
+    "light": {
+     "code": "15425",
+     "family": "martial_arts",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "15430",
+     "family": "martial_arts",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "15432",
+     "family": "martial_arts",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "MUAY-THAI!!",
+   "out": {
+    "light": {
+     "code": "15425",
+     "family": "martial_arts",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "15430",
+     "family": "martial_arts",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "15432",
+     "family": "martial_arts",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "cycling along the PCN",
+   "out": {
+    "light": {
+     "code": "01010",
+     "family": "cycling",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "01016",
+     "family": "cycling",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "01017",
+     "family": "cycling",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "park gym",
+   "out": {
+    "light": {
+     "code": "02054",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "02052",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "02050",
+     "family": "weight_training",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "fitness corner workout",
+   "out": {
+    "light": {
+     "code": "02054",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "02052",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "02050",
+     "family": "weight_training",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "outdoor gym",
+   "out": {
+    "light": {
+     "code": "02054",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "02052",
+     "family": "weight_training",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "02050",
+     "family": "weight_training",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "hiit",
+   "out": {
+    "light": {
+     "code": "02034",
+     "family": "circuit_training",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "02032",
+     "family": "circuit_training",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "02040",
+     "family": "circuit_training",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "zumba in the park",
+   "out": {
+    "light": {
+     "code": "02005",
+     "family": "aerobic_dance",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "02310",
+     "family": "aerobic_dance",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "02006",
+     "family": "aerobic_dance",
+     "matched_by": "family"
+    }
+   }
+  },
+  {
+   "text": "frisbee",
+   "out": {
+    "light": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "ultimate frisbee",
+   "out": {
+    "light": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "15250",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "rock climbing",
+   "out": {
+    "light": {
+     "code": "15535",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "15535",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "15535",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "skateboarding",
+   "out": {
+    "light": {
+     "code": "15580",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "15580",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "15580",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "kayaking",
+   "out": {
+    "light": {
+     "code": "18104",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "18104",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "18104",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "swimming laps",
+   "out": {
+    "light": {
+     "code": "18310",
+     "family": null,
+     "matched_by": "search"
+    },
+    "moderate": {
+     "code": "18310",
+     "family": null,
+     "matched_by": "search"
+    },
+    "vigorous": {
+     "code": "18310",
+     "family": null,
+     "matched_by": "search"
+    }
+   }
+  },
+  {
+   "text": "underwater basket weaving",
+   "out": {
+    "light": null,
+    "moderate": null,
+    "vigorous": null
+   }
+  },
+  {
+   "text": "",
+   "out": {
+    "light": null,
+    "moderate": null,
+    "vigorous": null
+   }
+  },
+  {
+   "text": "walk the dog",
+   "out": {
+    "light": {
+     "code": "17152",
+     "family": "walking",
+     "matched_by": "family"
+    },
+    "moderate": {
+     "code": "17190",
+     "family": "walking",
+     "matched_by": "family"
+    },
+    "vigorous": {
+     "code": "17200",
+     "family": "walking",
+     "matched_by": "family"
+    }
+   }
+  }
+ ]
+}
