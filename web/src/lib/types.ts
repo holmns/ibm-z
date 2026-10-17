@@ -104,7 +104,7 @@ export type AssessResponse = {
   plan: Plan;
   planned: RunResult;
   band: { p10: { runUg: number; cEq: number }; p90: { runUg: number; cEq: number } };
-  skip: { cEq: number; level: Level };
+  skip: { cEq: number; level: Level; ug: number }; // ug: the whole day breathed at the ordinary rate
   timeline: TimelineHour[];
   byStart: StartOption[];
   options: OptionRow[];

@@ -169,7 +169,7 @@ export async function assessPlan(req: AssessRequest): Promise<AssessResponse> {
     place: req.place, timezone: tz, fetchedAt: Math.floor(now), aqGrid: ctx.tl.aqGrid, weatherGrid: ctx.tl.weatherGrid,
     pmHorizon: pmLast(ctx), group: req.group, indoorRatio: req.indoorRatio, plan: req.plan, planned,
     band: { p10: { runUg: lo.runUg, cEq: lo.cEq }, p90: { runUg: hi.runUg, cEq: hi.cEq } },
-    skip: { cEq: skipC, level: skipLevel }, timeline, byStart, options,
+    skip: { cEq: skipC, level: skipLevel, ug: skipC * planned.vDayM3 }, timeline, byStart, options,
   };
 }
 

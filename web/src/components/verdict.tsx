@@ -127,9 +127,10 @@ export function StatTiles({ r }: { r: AssessResponse }) {
         <div className="tnum">80% range {fmt(r.band.p10.cEq, 1)} to {fmt(r.band.p90.cEq, 1)}</div>
         <div>{fmt(p.hq, 1)} times the WHO daily guideline</div>
       </Tile>
-      <Tile label="If you skip the run" value={fmt(r.skip.cEq, 1)} unit="µg/m³">
+      <Tile label="If you skip the run" value={fmt(r.skip.ug)} unit="µg">
         <div className="flex items-center gap-1.5"><StatusIcon level={r.skip.level} size={12} />{r.skip.level} from the day&apos;s air alone</div>
-        <div>The run adds {fmt(p.cEq - r.skip.cEq, 1)} µg/m³</div>
+        {/* skipping still breathes through the run's hour at the ordinary rate, so this is less than the run's own dose */}
+        <div>The run adds {fmt(p.runUg + p.restUg - r.skip.ug)} µg to the day</div>
       </Tile>
       <Tile label="Breathing during the run" value={fmt(p.veUsed, 1)} unit="L/min">
         <div className="tnum">
