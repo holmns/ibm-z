@@ -87,3 +87,109 @@ when it runs. The golden files in `src/lib/__tests__` come from the notebooks' o
 - `GET /api/aq-tiles/{z}/{x}/{y}` returns one of Google's PM2.5 heatmap tiles (`PM25_INDIGO_PERSIAN`, the current
   hour) as a PNG. It serves only zooms 10 to 12 over Singapore, Johor's south and Batam (177 tiles), and keeps each
   until the clock hour turns, which is as long as Google allows. Closer in, the map enlarges the zoom-12 tile.
+
+## Deploying
+
+The app runs on an IBM LinuxONE VM (s390x, Ubuntu 24.04). Next.js ships no SWC or Turbopack binary for s390x, so
+`next build` fails there and the build runs on a Mac or x86 machine instead. `next.config.ts` sets
+`output: "standalone"`, so the build writes `.next/standalone`, plain JavaScript with only the `node_modules` files
+the server loads. Nothing in it compiles on the VM, since `node:sqlite` comes with Node. The bundle carries the build
+machine's `sharp` binary, which nothing loads, as the app has no `next/image`.
+
+On the VM:
+
+- `~/hazewise-web` holds the bundle, its `.env` (mode 600) and the `.cache/` venue files the server writes.
+- `~/shared/ibm-z` is the git checkout. The container reads `hazewise.db` from it, read-only.
+- The Docker container `hazewise-web` runs `node server.js` in `node:26-slim`, which has s390x images. It restarts
+  unless stopped and listens on 127.0.0.1:3000 only.
+- nginx listens on port 80 and proxies to the container, with per-IP rate limits on the routes that spend credits.
+- iptables opens port 80 in `/etc/iptables/rules.v4`, which netfilter-persistent loads at boot.
+- There is no domain to put a TLS certificate on, so the site is HTTP only.
+
+The build copies `web/.env` into the bundle, so the VM runs with the build machine's keys.
+`NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` is compiled into the page, so changing it takes a rebuild. Google needs two keys:
+
+| Key | Used by | Restriction |
+|---|---|---|
+| `GOOGLE_MAPS_API_KEY` | the server, for the Air Quality API | no referrer restriction, since server requests send no `Referer` and Google would block them |
+| `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` | the browser, for the Maps JavaScript API | that API only, from `http://<vm-host>/*` and `http://localhost:3000/*` |
+
+### Redeploy
+
+From `web/` on the build machine, with `VM` set to the VM's `user@host`:
+
+```bash
+npm test && npm run build
+cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+rsync -az --delete --exclude 'node_modules/@img/sharp-*darwin*' --exclude 'node_modules/@img/sharp-libvips-darwin*' \
+  .next/standalone/ "$VM:hazewise-web/"
+ssh "$VM" 'chmod 600 hazewise-web/.env && docker restart hazewise-web'
+```
+
+`next build` leaves `public/` and `.next/static` out of the bundle. Without the `cp` the page loads with no scripts,
+styles or favicon. The bundle doesn't carry `hazewise.db`, so when it changes, `git pull` in `~/shared/ibm-z` on the
+VM as well and restart the container, which keeps the old file open until then.
+
+### First-time setup
+
+The container, on the VM:
+
+```bash
+docker run -d --name hazewise-web --restart unless-stopped --user "$(id -u):$(id -g)" \
+  -p 127.0.0.1:3000:3000 -v "$HOME/hazewise-web:/app" -w /app \
+  -v "$HOME/shared/ibm-z/hazewise.db:/data/hazewise.db:ro" \
+  -e HAZEWISE_DB=/data/hazewise.db -e HOSTNAME=0.0.0.0 -e PORT=3000 -e NODE_ENV=production \
+  node:26-slim node server.js
+```
+
+`HAZEWISE_DB` is needed because the bundle doesn't sit in `web/`, where the default `../hazewise.db` resolves. Docker
+puts the container ID in `HOSTNAME`, and `server.js` binds to whatever it says, so it is set to `0.0.0.0`.
+
+nginx comes from `apt install nginx`. The site is `/etc/nginx/sites-available/hazewise`, linked into `sites-enabled`
+in place of the default site:
+
+```nginx
+# the routes that spend OpenRouter and Google Air Quality credits, per client IP
+limit_req_zone $binary_remote_addr zone=hazewise_paid:10m rate=20r/m;
+# heat map tiles: a map view takes 8 to 15, and each new zoom level as many again
+limit_req_zone $binary_remote_addr zone=hazewise_tiles:10m rate=120r/m;
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    client_max_body_size 64k;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 120s;
+
+    location ~ ^/api/(activity|assess|venues|summary)$ {
+        limit_req zone=hazewise_paid burst=20 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:3000;
+    }
+
+    location /api/aq-tiles/ {
+        limit_req zone=hazewise_tiles burst=60 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:3000;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+```
+
+The firewall rejects everything it doesn't list, so port 80 is opened live and in `/etc/iptables/rules.v4`, after the
+port 22 rule:
+
+```bash
+sudo iptables -I INPUT 3 -p tcp -m conntrack --ctstate NEW -m tcp --dport 80 -j ACCEPT
+# rules.v4: -A INPUT -p tcp -m conntrack --ctstate NEW -m tcp --dport 80 -j ACCEPT
+```
