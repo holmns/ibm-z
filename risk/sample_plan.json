@@ -1,0 +1,23 @@
+{
+  "activity": {
+    "family": "running",
+    "effort": "moderate",
+    "activity_code": null,
+    "free_text": null
+  },
+  "location": {
+    "name": "East Coast Park",
+    "lat": null,
+    "lon": null
+  },
+  "start": "now",
+  "duration_min": 30,
+  "distance_km": 4.5,
+  "pace_min_per_km": 6.67,
+  "body": {
+    "weight_kg": 65
+  },
+  "skin_type": 3,
+  "group": "general",
+  "shade": 0.2
+}
