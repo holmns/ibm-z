@@ -70,8 +70,7 @@ export function Notes({ r }: { r: AssessResponse }) {
             Your day&apos;s PM2.5 adds the {n} to the rest of the day and spreads it over the {fmt(r.planned.vDayM3, 1)} m³
             of air a person your age breathes on an ordinary day. It&apos;s the all-day air level that would give the
             same dose without the {n}. Low is under 37.5 µg/m³ and High is 75 or more, set from WHO&apos;s 24-hour air
-            targets. For vulnerable groups the lines are 25 and 50. An hour NEA rates high, over 150 µg/m³, makes it
-            High on its own.
+            targets. For vulnerable groups the lines are 25 and 50.
           </p>
         </div>
         <div className="space-y-2">

@@ -22,15 +22,13 @@ describe("assess-risk.ipynb §5 checks", () => {
     expect(b.cEq).toBeCloseTo(2 * a.cEq, 9);
     expect(assess(flat(40), T0, 60, 65, 30, TZ, "general", 0.5).restUg).toBeCloseTo(0.5 * b.restUg, 9);
   });
-  it("thresholds and the NEA override", () => {
-    expect(riskLevel(37.4, 50, "general").level).toBe("Low");
-    expect(riskLevel(37.5, 50, "general").level).toBe("Medium");
-    expect(riskLevel(74.9, 50, "general").level).toBe("Medium");
-    expect(riskLevel(75, 50, "general").level).toBe("High");
-    expect(riskLevel(24.9, 50, "vulnerable").level).toBe("Low");
-    expect(riskLevel(50, 50, "vulnerable").level).toBe("High");
-    expect(riskLevel(20, 151, "general").level).toBe("High");
-    expect(riskLevel(20, 150, "general").level).toBe("Low");
+  it("thresholds", () => {
+    expect(riskLevel(37.4, "general").level).toBe("Low");
+    expect(riskLevel(37.5, "general").level).toBe("Medium");
+    expect(riskLevel(74.9, "general").level).toBe("Medium");
+    expect(riskLevel(75, "general").level).toBe("High");
+    expect(riskLevel(24.9, "vulnerable").level).toBe("Low");
+    expect(riskLevel(50, "vulnerable").level).toBe("High");
     expect([vDay(30), vDay(31), vDay(70), vDay(85)]).toEqual([15.7, 16.0, 14.2, 12.2]);
   });
 });

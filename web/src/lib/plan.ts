@@ -206,7 +206,7 @@ export async function assessPlan(req: AssessRequest): Promise<AssessResult> {
   const hi = bandRun(v.veP90);
   // skipping keeps the same hours outdoors, so the session's slot is spent indoors
   const skipC = outdoorShare(req.outdoorHours, 0) * planned.dayPmMean;
-  const skipLevel = riskLevel(skipC, 0, req.group).level;
+  const skipLevel = riskLevel(skipC, req.group).level;
 
   // the same session at every whole-hour start within the forecast, night included
   const t0 = pm.t[0];

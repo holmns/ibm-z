@@ -6,7 +6,7 @@ const facts = (place: string): SummaryFacts => ({
   level: "Medium", raisedBy: ["air quality"], activity: "run", plan: "10 km at 6:00 per km", place,
   when: "Sun 18 Oct 20:00 to 21:00", thresholds: "general",
   air: { level: "Medium", dayPm25: "44 µg/m³", lowBelow: "37.5 µg/m³", highFrom: "75 µg/m³", sessionAvgPm25: "36 µg/m³",
-    neaRating: "normal", oneHourMakesItHigh: false },
+    neaRating: "normal" },
   heat: { level: "Low", feelsLike: "30.1°C" }, uv: { level: "Low", index: "0" },
   rain: { level: "Low", chanceOfRain: "20%", thunderstormForecast: false },
   dose: { duringSession: "156 µg", addedToDay: "133 µg" }, suggestion: "Starting Wed 21 Oct 06:00 brings it down to Low.",

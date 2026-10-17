@@ -1,5 +1,5 @@
 // PM2.5 intake risk: assess-risk.ipynb §3-§4. Dose over the run and the rest of the day, scored as a
-// day-equivalent concentration against WHO 24-hour tiers, with an NEA 1-hour override.
+// day-equivalent concentration against WHO 24-hour tiers.
 import { interp, mean, roundHalfEven } from "./num";
 import { startOfLocalDay } from "./time";
 
@@ -19,7 +19,6 @@ export const LEVELS: Record<Group, [number, Level][]> = {
   general: [[37.5, "Low"], [75, "Medium"], [Infinity, "High"]],
   vulnerable: [[25, "Low"], [50, "Medium"], [Infinity, "High"]],
 };
-export const NEA_HIGH = 150; // above this, the hour is Band III or worse
 export const WHO_GUIDELINE = 15;
 
 export function vDay(age: number) {
@@ -46,18 +45,11 @@ export function whoTier(c: number): { name: string; value: number } | null {
   return { name, value };
 }
 
-export type PmReason =
-  | { kind: "day-equivalent"; cEq: number; tier: { name: string; value: number } | null }
-  | { kind: "nea-hour"; pm: number; band: string };
+export type PmReason = { kind: "day-equivalent"; cEq: number; tier: { name: string; value: number } | null };
 
-export function riskLevel(cEq: number, maxHourPm: number, group: Group): { level: Level; reasons: PmReason[] } {
-  let level = LEVELS[group].find(([top]) => cEq < top)![1];
-  const reasons: PmReason[] = [{ kind: "day-equivalent", cEq, tier: whoTier(cEq) }];
-  if (maxHourPm > NEA_HIGH) {
-    level = "High";
-    reasons.push({ kind: "nea-hour", pm: maxHourPm, band: neaBand(maxHourPm) });
-  }
-  return { level, reasons };
+export function riskLevel(cEq: number, group: Group): { level: Level; reasons: PmReason[] } {
+  const level = LEVELS[group].find(([top]) => cEq < top)![1];
+  return { level, reasons: [{ kind: "day-equivalent", cEq, tier: whoTier(cEq) }] };
 }
 
 // hourly PM2.5 forecast, NaN-free, increasing times (unix s)
@@ -121,7 +113,7 @@ export function assess(pm: PmSeries, start: number, minutes: number, veLmin: num
   pm.t.forEach((t, i) => {
     if (t >= h0 && t <= h1) maxHour = Math.max(maxHour, pm.v[i]);
   });
-  const { level, reasons } = riskLevel(cEq, maxHour, group);
+  const { level, reasons } = riskLevel(cEq, group);
   const notes: string[] = [];
   if (day0 < pm.t[0] || day0 + 60 * 1439 > pm.t[pm.t.length - 1] + 3600) {
     notes.push("part of the day is outside the forecast; its edge hour fills the gap");

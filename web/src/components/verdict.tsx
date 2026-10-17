@@ -78,7 +78,6 @@ function summaryFacts(r: AssessResponse, drivers: FactorKey[], suggestionText: s
   const f = p.factors;
   const levels = factorLevels(r);
   const [lowCut, highCut] = LEVELS[r.group].map(([top]) => top);
-  const neaHit = p.pmReasons.find((x) => x.kind === "nea-hour");
   return {
     level: p.level, raisedBy: p.level === "Low" ? [] : drivers.map((k) => FACTOR_NAMES[k]), activity: noun(r.plan),
     plan: describePlan(r.plan, r.activity), place: r.place.name,
@@ -86,7 +85,7 @@ function summaryFacts(r: AssessResponse, drivers: FactorKey[], suggestionText: s
     air: {
       level: levels.air, dayPm25: `${fmt(p.cEq)} µg/m³`, lowBelow: `${fmt(lowCut, lowCut % 1 ? 1 : 0)} µg/m³`,
       highFrom: `${fmt(highCut)} µg/m³`, sessionAvgPm25: `${fmt(p.runPmMean)} µg/m³`,
-      neaRating: neaWord(neaHit?.kind === "nea-hour" ? neaHit.pm : p.runPmMaxHour), oneHourMakesItHigh: Boolean(neaHit),
+      neaRating: neaWord(p.runPmMaxHour),
     },
     heat: { level: levels.heat, feelsLike: f.apparentTempC === null ? null : `${fmt(f.apparentTempC, 1)}°C` },
     uv: { level: levels.uv, index: f.uvIndex === null ? null : fmt(f.uvIndex, f.uvIndex % 1 ? 1 : 0) },
@@ -158,7 +157,6 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
   const levels = factorLevels(r);
   const drivers = (Object.keys(levels) as FactorKey[]).filter((k) => levels[k] === p.level);
   const [lowCut, highCut] = LEVELS[r.group].map(([top]) => top);
-  const neaHit = p.pmReasons.find((x) => x.kind === "nea-hour");
   const pmMax = Math.max(highCut * 4 / 3, r.band.p90.cEq * 1.1, p.cEq * 1.1);
   const haze = hazeWarning(r, p.start);
 
@@ -187,9 +185,7 @@ export function Verdict({ r, onApply }: { r: AssessResponse; onApply: (o: Option
             band={[r.band.p10.cEq, r.band.p90.cEq]}
             zones={[{ to: lowCut, level: "Low" }, { to: highCut, level: "Medium" }, { to: Infinity, level: "High" }]}
             ticks={[{ v: lowCut, label: fmt(lowCut, lowCut % 1 ? 1 : 0) }, { v: highCut, label: fmt(highCut) }]} />}>
-          {neaHit && neaHit.kind === "nea-hour"
-            ? `One hour of the ${n} reaches ${fmt(neaHit.pm)} µg/m³, which NEA rates ${neaWord(neaHit.pm)}. That alone makes it High.`
-            : `Air during the ${n} averages ${fmt(p.runPmMean)} µg/m³, which NEA rates ${neaWord(p.runPmMaxHour)}.`}
+          {`Air during the ${n} averages ${fmt(p.runPmMean)} µg/m³, which NEA rates ${neaWord(p.runPmMaxHour)}.`}
         </FactorCell>
 
         <FactorCell title="Heat" level={levels.heat} value={fmt(f.apparentTempC, 1)} unit="°C" caption="Feels like, at its hottest"

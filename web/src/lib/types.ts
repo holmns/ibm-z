@@ -158,7 +158,6 @@ export type SummaryFacts = {
   thresholds: Group;
   air: {
     level: Level; dayPm25: string; lowBelow: string; highFrom: string; sessionAvgPm25: string; neaRating: string;
-    oneHourMakesItHigh: boolean;
   };
   heat: { level: Level; feelsLike: string | null };
   uv: { level: Level; index: string | null };

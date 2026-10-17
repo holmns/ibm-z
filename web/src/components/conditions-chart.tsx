@@ -83,7 +83,7 @@ export function ConditionsChart({ timeline, tz, runStart, runEnd, placeName, psi
       <CardHeader
         title={`Forecast at ${placeName}`}
         subtitle={<>
-          Hourly until {fmtDayTime(t1, tz)}. Labelled lines mark where the risk rules step up.
+          Hourly until {fmtDayTime(t1, tz)}. Labelled lines mark NEA&apos;s PM2.5 bands and where the heat, UV and rain rules step up.
           {psi && <> NEA&apos;s 24-hour PSI for the {psi.region} is {psi.value} now, {psiBand(psi.value)}.</>}
         </>}
         action={<TextButton onClick={() => setTable((v) => !v)} pressed={table}>{table ? "Chart" : "Table"}</TextButton>}
